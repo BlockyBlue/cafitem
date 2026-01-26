@@ -1,0 +1,65 @@
+---
+import Styles from '../styles/styles.css'
+import Favicon from '/favicon.ico'
+const { headerName = "CaFitem ", headerVersion = "Basic" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaFitem</title>
+    <link rel="icon" type="image/x-icon" href={Favicon}>
+    <link rel="stylesheet" href={Styles}>
+    <slot name="style" />
+    <slot name="headScript" />
+  </head>
+  <body>
+      <header><h1>{headerName}<span style="font-size: 15px;">{headerVersion}</span></h1></header>
+  <nav>
+     <ul>
+       <li><a href="home">Home</a></li>
+       <li><a href="calculator">Invoice Creator</a></li>
+       <li><a href="tracker">Invoice Tracker</a></li>
+       <li><a href="finder">Item Finder</a></li>
+       <li><a href="settings">Settings</a></li>
+       <li class="sign-out"><a href="#"><button class="sign-out-button" id="signOutButton">Sign Out</button></a></li>
+    </ul>
+  </nav>
+             <script is:inline type="module">
+    window.addEventListener('DOMContentLoaded', () => {
+          const currentPage = window.location.pathname.split("/").pop(); // "settings"
+const navLinks = document.querySelectorAll('nav ul li a');
+
+navLinks.forEach(link => {
+  const linkPath = link.getAttribute('href').split("/").pop(); // also "settings"
+  if (linkPath === currentPage) {
+    link.classList.add('active');
+  }
+});
+            // SessionStorage-based login check
+      function checkLogin(retry) {
+        if (!sessionStorage.getItem('loggedInUser')) {
+          if (retry) {
+            setTimeout(() => checkLogin(false), 100);
+            return;
+          }
+          window.location.href = '/login?error=You must be logged in to access this page.';
+        }
+      }
+      checkLogin(true);
+      // Sign out button logic
+      const signOutButton = document.getElementById('signOutButton');
+      if (signOutButton) {
+        signOutButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          sessionStorage.removeItem('loggedInUser');
+          window.location.href = '/login';
+        });
+      }
+    });
+       </script>
+  <slot name="body" />
+  </body>
+</html>

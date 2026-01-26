@@ -1,0 +1,20 @@
+---
+import Styles from '../styles/styles.css'
+import Favicon from '/favicon.ico'
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaFitem</title>
+    <link rel="icon" type="image/x-icon" href={Favicon}>
+    <link rel="stylesheet" href={Styles}>
+    <slot name="style" />
+    <slot name="headScript" />
+  </head>
+  <body>
+  <slot name="body" />
+  </body>
+</html>

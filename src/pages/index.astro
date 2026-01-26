@@ -1,0 +1,347 @@
+---
+import Layout from '../layouts/BasicLayout.astro';
+import finderPicture from '../assets/finder.png';
+---
+
+<Layout>
+	<style slot="style">
+    body {
+      text-align: left;
+    }
+    main {
+      padding: 20px;
+      padding-top: 70px;
+    }
+    header {
+      display: flex;
+      position: fixed;
+      width: 100%;
+    }
+    header h1 {
+      text-align:left;
+      margin-left:10px;
+      display: inline-block;
+    }
+    h2 {
+      font-size: 80px;
+      margin: 20px;
+      text-align: center;
+    }
+    h3 {
+      font-size: 30px;
+      text-align: center;
+    }
+    p {
+     font-size: 28px;
+    }
+    .item-description {
+     font-size: 18px;
+     text-align: center;
+    }
+    hr {
+    width: 50%;
+    border: 2px solid #000;
+    }
+    .question {
+      background-color: #66c9ff;
+      border-radius: 20px;
+      padding: 20px;
+      margin: 20px;
+      text-align: center;
+      box-shadow: 3px 3px 5px #000;
+      display: inline-block;
+    }
+    .image {
+      width: 40%;
+      height: auto;
+      vertical-align: bottom;
+      box-shadow: 3px 3px 5px #000;
+      margin: 20px;
+      border: 2px solid #000;
+      border-radius: 10px;
+    }
+    .sign-up, .login {
+      width: 90px;
+      height: 30px;
+      border-radius: 15px;
+      border: 2px solid #fff;
+      text-align: center;
+      font-family:"Raleway", sans-serif;
+      font-size: 16px;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    .sign-up, .login:hover { background-color: #ffffff; color: #026AA7; }
+    .login, .sign-up:hover { background-color: #00000000; color: #ffffff; }
+    .button-area {
+       margin-left: auto;
+       margin-right: 10px;
+       margin-top: 5px;
+    }
+    .item-box {
+      background-color: #111;
+      border-radius: 5px;
+      border: 10px solid #fff;
+      width: 250px;
+      height: 400px;
+      box-shadow: 0px 0px 5px #fff;
+      padding: 10px;
+      margin: 10px;
+      display: inline-block;
+    }
+    .icon {
+      text-align: center;
+      margin: 0px;
+      color: #66c9ff;
+      font-size: 250px;
+      line-height: 1;
+      display: inline-block;
+    }
+    .item-display {
+      width: 100vw;
+      min-height: 700vh; /* This sets a large scrollable area for the effect */
+      background-color: #000;
+      color: #fff;
+      margin: -20px;
+      margin-top: 20px;
+      position: relative;
+    }
+
+    /* New CSS for the scrolling effect */
+    .sticky-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      height: 100vh; /* The height of the viewport */
+      z-index: 10;
+    }
+    
+    .sticky-box {
+      background-color: #00000000;
+      border-radius: 5px;
+      /* Border removed as requested */
+      width: 40%;
+      height: 70%;
+      max-width: 400px;
+      padding: 10px;
+      margin: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      /* Animation for the sticky box */
+      transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    }
+
+    .sticky-box h3, .sticky-box p {
+      margin: 0;
+    }
+
+    .description-container {
+      width: 40%;
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .description-item {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%) translateX(100%);
+      opacity: 0;
+      transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .description-item.active {
+      transform: translateY(-50%) translateX(0);
+      opacity: 1;
+    }
+
+    .are-you-interested {
+      height: 95vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+      padding-top: 20px;
+    }
+    footer {
+      height: 5vh;
+      background-color: #026AA7;
+      text-align: center;
+      padding: 20px;
+      color: #fff;
+     font-size: 20px;
+    }
+
+    /* Media queries for responsiveness */
+    @media (max-width: 768px) {
+        .sticky-container {
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .sticky-box {
+            width: 90%;
+            height: 40%;
+        }
+        .description-container {
+            width: 90%;
+            height: 50%;
+        }
+    }
+	</style>
+	<div slot="body">
+    <header>
+      <h1>CaFitem</h1>
+      <div class="button-area">
+        <a href="/login"><button class="login">Login</button></a>
+        <a href="create.astro"><button class="sign-up">Sign Up</button></a>
+      </div>
+    </header>
+    <main>
+      <div class="question" style="width: 50%;">
+      <h2>What is CaFitem?</h2>
+        <hr>
+        <p>CaFitem is a revolutionary tool used to make <strong style="font-size: 40px;">YOUR</strong> workflow easier! From Invoice Creators to Item Finders, I've got your back.
+      </div>
+      <img class="image" src={finderPicture.src} alt="An image of the finder app in CaFitem">
+      <div class="item-display" id="itemDisplay">
+        <h2 style="position: sticky; top: 0; z-index: 10; background-color: #000; text-align: center; padding-top: 10vh; margin-top: 0; margin-bottom: 20px; font-size: 5rem;">It's got...</h2>
+        <div class="sticky-container">
+          <div class="sticky-box" id="stickyBox">
+            <!-- Content will be injected by JavaScript -->
+          </div>
+          <div class="description-container">
+            <div class="description-item active">
+              <h3>Invoice Creator</h3>
+              <p class="item-description">Create invoices quickly and easily! This feature allows you to generate professional invoices with customizable templates and itemized lists.</p>
+            </div>
+            <div class="description-item">
+              <h3>Item Finder</h3>
+              <p class="item-description">Parse & Preview: Your Smart Inventory Tool! Easily search for items, view their details, and manage your inventory with our powerful search functionality.</p>
+            </div>
+            <div class="description-item">
+              <h3>App Crossover</h3>
+              <p class="item-description">Transfer data between the apps for added productivity! Seamlessly move information between our different applications to streamline your workflow and save time.</p>
+            </div>
+            <div class="description-item">
+              <h3>Editable Results</h3>
+              <p class="item-description">Edit the finished results for even better results! Our tools are flexible, allowing you to modify and fine-tune your output to meet your specific needs.</p>
+            </div>
+            <div class="description-item">
+              <h3>Always Updating</h3>
+              <p class="item-description">This program continues to evolve before your eyes! We are constantly working on new features and improvements to ensure you have the best possible experience.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="are-you-interested">So what are you waiting for? <a href="create.html" style="color: #008bd6;">Create your free account NOW!</a></p>
+    </main>
+    <footer>
+      © 2025 CaFitem
+    </footer>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Get references to the DOM elements
+        const itemDisplay = document.getElementById('itemDisplay');
+        const stickyBox = document.getElementById('stickyBox');
+        const descriptionItems = document.querySelectorAll('.description-item');
+
+        // Bail out early if required elements are missing
+        if (!stickyBox || !itemDisplay) return;
+
+        // Define the content for the sticky box, which will be updated dynamically
+        const boxContent = [
+          {
+            icon: 'receipt',
+            title: 'Invoice Creator',
+          },
+          {
+            icon: 'search',
+            title: 'Item Finder',
+          },
+          {
+            icon: 'circles_ext',
+            title: 'App Crossover',
+          },
+          {
+            icon: 'edit',
+            title: 'Editable Results',
+          },
+          {
+            icon: 'sync',
+            title: 'Always Updating',
+          },
+        ];
+
+        // Function to update the content of the sticky box and the active description
+        function updateContent(index: number) {
+          // Add a temporary animation class to the sticky box
+          if (!stickyBox) return;
+          stickyBox.style.transform = 'scale(0.95)';
+          stickyBox.style.opacity = '0';
+
+          setTimeout(() => {
+            // Update the sticky box content
+            stickyBox.innerHTML = `
+              <span class="material-symbols-outlined icon" style="font-size: 250px;">${boxContent[index].icon}</span>
+              <h3 style="font-size: 30px">${boxContent[index].title}</h3>
+            `;
+            
+            // Add the 'active' class to the current description and remove it from others
+            descriptionItems.forEach((item, i) => {
+              if (i === index) {
+                item.classList.add('active');
+              } else {
+                item.classList.remove('active');
+              }
+            });
+
+            // Revert the animation
+            stickyBox.style.transform = 'scale(1)';
+            stickyBox.style.opacity = '1';
+          }, 300); // Wait for the transition to finish before changing content
+        }
+
+        // Set the initial content when the page loads
+        updateContent(0);
+
+        // Listen for scroll events to trigger the content change
+        window.addEventListener('scroll', () => {
+          const scrollPosition = window.scrollY;
+          // Get the vertical position of the start of the item-display section
+          const displayTop = itemDisplay.offsetTop;
+          // Get the full height of the scrollable section
+          const displayHeight = itemDisplay.offsetHeight;
+
+          // Calculate a normalized scroll value from 0 to 1
+          const totalScrollHeight = displayHeight - window.innerHeight;
+          const scrollFraction = (scrollPosition - displayTop) / totalScrollHeight;
+          
+          // Determine which item should be active based on the scroll fraction
+          const totalItems = descriptionItems.length;
+          let activeIndex = Math.floor(scrollFraction * totalItems);
+
+          // Ensure the index is within the valid range
+          if (activeIndex < 0) activeIndex = 0;
+          if (activeIndex >= totalItems) activeIndex = totalItems - 1;
+
+          // Only update if the active index has changed
+          if (stickyBox.dataset.activeIndex !== String(activeIndex)) {
+              stickyBox.dataset.activeIndex = String(activeIndex);
+              updateContent(activeIndex);
+          }
+        });
+      });
+    </script>
+	</div>
+</Layout>

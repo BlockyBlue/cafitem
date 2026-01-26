@@ -1,0 +1,906 @@
+---
+import Layout from '../../layouts/AppLayout.astro';
+---
+
+<Layout headerName="Invoice Tracker " headerVersion="v1.0.0">
+	<style slot="style">
+      /* Modal styles for confirmation dialog */
+      .confirm-modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgb(0,0,0);
+      background-color: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      }
+      .confirm-modal-content {
+      background-color: #fefefe;
+      padding: 20px;
+      border: 1px solid #888;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+      }
+      .confirm-modal-content h3 {
+      margin-top: 0;
+      }
+      /* Main layout for the edit popup content using CSS Grid */
+      .edit-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      }
+      /* Styles for the text input grid within the edit popup */
+      .edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 15px;
+      align-items: center;
+      }
+      .edit-grid label {
+      text-align: right;
+      font-weight: normal; /* Labels are now normal weight */
+      color: #333;
+      }
+      /* Container for the line item tables, using flexbox for side-by-side layout */
+      .line-item-tables {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap; /* Allows tables to wrap on smaller screens */
+      }
+      /* Styles for the summary table within the edit popup */
+      .summary-table-container {
+      display: flex;
+      justify-content: flex-start;
+      }
+      /* Styles for the edit buttons */
+      .edit-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      }
+      .info-box, .quantity-input {
+      margin: 0px;
+      }
+	</style>
+	<div slot="body">
+    <main style="text-align: center;">
+      <button class="menu-button" id="clearFiltersButton">Clear Filters</button>
+      <button class="menu-button" id="addInvoiceButton"><span class="material-symbols-outlined">receipt</span>Add Invoice</button>
+      <select class="menu-button" id="sortSelect">
+        <option value="noSelection">Sort By...</option>
+        <option value="oldest">Oldest</option>
+        <option value="newest">Newest</option>
+        <option value="lowPrice">Low Price</option>
+        <option value="highPrice">High Price</option>
+        <option value="alphabetical">Name A to Z</option>
+        <option value="reverseAlphabetical">Name Z to A</option>
+      </select>
+      <input class="menu-button" style="width: 300px;" placeholder="Search for Name, Phone, Email, or Location..." id="searchInput">
+      <label class="menu-button-label">From:</label>
+      <input class="menu-button" type="date" id="fromDateInput">
+      <label class="menu-button-label">To:</label>
+      <input class="menu-button" type="date" id="toDateInput">
+      <button class="menu-button" id="deleteAllButton" style="background-color: #e74c3c; color: white;">Delete All</button>
+      <table id="invoiceTable" style="width: 100%; max-width: 100%;">
+        <thead>
+          <tr>
+            <th>Invoice ID</th>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Email</th>
+            <th>Phone Number</th>
+            <th>Location</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </main>
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="confirm-modal">
+      <div class="confirm-modal-content">
+        <h3>Are you sure you want to delete this invoice?</h3>
+        <button class="remove-item" id="confirmNo" style="background-color: lightgray; border-color: gray;">No</button>
+        <button class="remove-item" id="confirmYes">Yes</button>
+      </div>
+    </div>
+    <div id="editPopup" class="popup-container">
+      <div class="popup-content">
+        <form id="editForm">
+          <h2 style="text-align: center;">Edit Invoice</h2>
+          <div class="edit-layout">
+            <div class="left-column">
+              <div class="edit-grid">
+                <label for="editInvoiceID">Invoice ID:</label>
+                <input class="info-box" type="text" id="editInvoiceID" name="invoiceId">
+                <label for="editName">Name:</label>
+                <input class="info-box" type="text" id="editName" name="name">
+                <label for="editPhoneNumber">Phone Number:</label>
+                <input class="info-box" type="tel" id="editPhoneNumber" name="phoneNumber">
+                <label for="editEmail">Email:</label>
+                <input class="info-box" type="email" id="editEmail" name="email">
+                <label for="editLocation">Location:</label>
+                <input class="info-box" type="text" id="editLocation" name="location">
+                <label for="editDate">Date:</label>
+                <input class="info-box" type="datetime-local" id="editDate" name="date">
+                <label for="editTax">Tax (%):</label>
+                <input class="info-box" type="number" step="0.01" id="editTax" name="tax">
+                <label for="editDeposit">Deposit ($):</label>
+                <input class="info-box" type="number" step="0.01" id="editDeposit" name="deposit">
+                <label for="editDiscount">Discount:</label>
+                <input class="info-box" type="number" step="0.01" id="editDiscount" name="discount">
+                <label for="editStatus">Status:</label>
+                <select class="info-box" id="editStatus" name="status">
+                  <option value="Unpaid">Unpaid</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div class="summary-table-container">
+                <table style="width: 300px;">
+                  <tbody>
+                    <tr>
+                      <td>Food Subtotal</td>
+                      <td id="food-subtotal">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Travel Fee</td>
+                      <td id="travel-fee">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Tax</td>
+                      <td id="tax-amount">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Total</td>
+                      <td id="grand-total">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Deposit</td>
+                      <td id="deposit-display">0.00</td>
+                    </tr>
+                    <td>Discount</td>
+                      <td id="discount-display">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Balance Due</td>
+                      <td id="balance-due">0.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="right-column">
+              <div class="line-item-tables">
+                <table style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Adults</td>
+                      <td><input type="number" class="quantity-input" id="adults-quantity" min="0"></td>
+                      <td><input type="number" step="0.01" class="info-box" id="adults-price" value="50.00"></td>
+                      <td id="adults-total">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Kids</td>
+                      <td><input type="number" class="quantity-input" id="kids-quantity" min="0"></td>
+                      <td><input type="number" step="0.01" class="info-box" id="kids-price" value="30.00"></td>
+                      <td id="kids-total">0.00</td>
+                    </tr>
+                    <tr>
+                      <td>Deluxe</td>
+                      <td><input type="number" class="quantity-input" id="deluxe-quantity" min="0"></td>
+                      <td><input type="number" step="0.01" class="info-box" id="deluxe-price" value="65.00"></td>
+                      <td id="deluxe-total">0.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <table style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Upgrade</td>
+                      <td><input type="number" step="0.01" class="info-box" id="upgrade-price"></td>
+                    </tr>
+                    <tr>
+                      <td>Side Order</td>
+                      <td><input type="number" step="0.01" class="info-box" id="side-order-price"></td>
+                    </tr>
+                    <tr>
+                      <td>Setup</td>
+                      <td><input type="number" step="0.01" class="info-box" id="setup-price"></td>
+                    </tr>
+                    <tr>
+                      <td>Appetizer</td>
+                      <td><input type="number" step="0.01" class="info-box" id="appetizer-price"></td>
+                    </tr>
+                    <tr>
+                      <td>Travel</td>
+                      <td><input type="number" step="0.01" class="info-box" id="travel-price"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="edit-buttons">
+                <button type="submit" id="saveEditButton" class="add-item">Save</button>
+                <button type="button" id="cancelEditButton" class="remove-item">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <script type="module">
+      // Import necessary Firebase functions
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+      import { getFirestore, doc, collection, addDoc, query, where, getDocs, onSnapshot, deleteDoc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      
+      // Global variables for Firebase configuration and authentication
+      const firebaseConfig = {
+        apiKey: "AIzaSyDIF22zN6b-YjCilsumv7VrwO3NiUeeCM4",
+        authDomain: "cafitem-8de92.firebaseapp.com",
+        projectId: "cafitem-8de92",
+        storageBucket: "cafitem-8de92.firebasestorage.app",
+        messagingSenderId: "100147713764",
+        appId: "1:100147713764:web:b41169600b7c121d04bef1",
+        measurementId: "G-9D859PV60C"
+      };
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+      
+      // Firebase initialization and authentication state management
+      let db;
+      let auth;
+      let userId;
+      let allInvoices = []; // Global variable to store all fetched invoices
+      let currentEditInvoiceId = null;
+      
+      const addInvoiceButton = document.getElementById('addInvoiceButton');
+      const deleteAllButton = document.getElementById('deleteAllButton');
+      const invoiceTableBody = document.querySelector('#invoiceTable tbody');
+      const editPopup = document.getElementById('editPopup');
+      const searchInput = document.getElementById('searchInput');
+      const fromDateInput = document.getElementById('fromDateInput');
+      const toDateInput = document.getElementById('toDateInput');
+      const sortSelect = document.getElementById('sortSelect');
+      const confirmModal = document.getElementById('confirmModal');
+      const confirmYes = document.getElementById('confirmYes');
+      const confirmNo = document.getElementById('confirmNo');
+      const editForm = document.getElementById('editForm');
+      const saveEditButton = document.getElementById('saveEditButton');
+      const cancelEditButton = document.getElementById('cancelEditButton');
+      const editTaxInput = document.getElementById('editTax');
+      const editDepositInput = document.getElementById('editDeposit');
+      const editDiscountInput = document.getElementById('editDiscount');
+      const editDateInput = document.getElementById('editDate');
+      
+      // Custom function to show confirmation modal
+      function showConfirmModal(message, yesCallback, noCallback) {
+          document.querySelector('#confirmModal h3').textContent = message;
+          confirmModal.style.display = 'flex';
+          confirmYes.onclick = () => {
+              confirmModal.style.display = 'none';
+              yesCallback(true);
+          };
+          confirmNo.onclick = () => {
+              confirmModal.style.display = 'none';
+              noCallback(false);
+          };
+      }
+      
+      // Initialize Firebase and set up auth listener
+      async function initFirebase() {
+          try {
+              const app = initializeApp(firebaseConfig);
+              db = getFirestore(app);
+              auth = getAuth(app);
+      
+              // Listen for authentication state changes
+              onAuthStateChanged(auth, async (user) => {
+                  if (user) {
+                      // User is signed in.
+                      userId = user.uid;
+                      console.log('Authentication successful. User ID:', userId);
+      
+                      // Enable the button once authenticated
+                      addInvoiceButton.disabled = false;
+                      deleteAllButton.disabled = false;
+      
+                      // Update the table with real-time data
+                      await updateTable();
+      
+                  } else {
+                      // User is signed out. Sign in with the provided token.
+                      try {
+                          if (initialAuthToken) {
+                              await signInWithCustomToken(auth, initialAuthToken);
+                          } else {
+                              await signInAnonymously(auth);
+                          }
+                      } catch (error) {
+                          console.error('Authentication error:', error);
+                      }
+                  }
+              });
+          } catch (error) {
+              console.error("Firebase initialization failed:", error);
+          }
+      };
+      
+      // Function to add a new invoice to Firestore
+      async function addInvoice() {
+        // Get the uid from sessionStorage
+        const loggedInUid = sessionStorage.getItem('loggedInUser');
+        if (!loggedInUid) {
+          console.error('sessionStorage "loggedInUser" key is missing. Please log in.');
+          return;
+        }
+      
+        console.log('Adding new invoice...');
+        let userDocRef;
+      
+        try {
+          // Search for the user document within the 'users' collection at the root
+          const usersCollectionRef = collection(db, 'users');
+      
+          // Create a query to find the document with the matching UID
+          const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+          const querySnapshot = await getDocs(q);
+      
+          if (querySnapshot.empty) {
+            console.error('No user document found with the matching UID. Cannot add invoice.');
+            return;
+          } else {
+            console.log('User document found. Proceeding...');
+            userDocRef = querySnapshot.docs[0].ref;
+          }
+      
+          const invoicesCollectionRef = collection(userDocRef, 'invoices');
+      
+          // Generate a unique, sortable invoice ID based on creation date and a counter
+          const now = new Date();
+          const datePart = `${now.getMonth() + 1}-${now.getDate()}-${now.getFullYear() % 100}`;
+          const invoicesOnSameDay = allInvoices.filter(inv => (inv.invoiceId || '').startsWith(`INV-${datePart}`));
+          const newCounter = invoicesOnSameDay.length + 1;
+          const newInvoiceId = `INV-${datePart}-${newCounter}`;
+      
+          await addDoc(invoicesCollectionRef, {
+            invoiceId: newInvoiceId,
+            name: 'New Invoice',
+            phoneNumber: '',
+            email: '',
+            location: '',
+            date: new Date().toISOString().substring(0, 16),
+            status: 'Unpaid',
+            lineItems: {
+              adults: { quantity: 0, price: 50.00 },
+              kids: { quantity: 0, price: 30.00 },
+              deluxe: { quantity: 0, price: 65.00 },
+              upgrade: { price: 0 },
+              sideOrder: { price: 0 },
+              setup: { price: 0 },
+              appetizer: { price: 0 },
+              travel: { price: 0 }
+            },
+            taxRate: 0,
+            deposit: 0,
+            discount: 0,
+            total: 0,
+            balance: 0,
+          });
+      
+          console.log('Invoice added successfully!');
+      
+        } catch (error) {
+          console.error('Error adding document:', error);
+        }
+      };
+      
+      // Function to delete a single invoice from Firestore
+      async function deleteInvoice(invoiceId) {
+          const loggedInUid = sessionStorage.getItem('loggedInUser');
+          if (!loggedInUid) {
+            console.error('sessionStorage "loggedInUser" key is missing. Cannot delete invoice.');
+            return;
+          }
+      
+          try {
+              const usersCollectionRef = collection(db, 'users');
+              const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+              const querySnapshot = await getDocs(q);
+      
+              if (querySnapshot.empty) {
+                  console.error('No user document found with the matching UID. Cannot delete invoice.');
+                  return;
+              }
+      
+              const userDocRef = querySnapshot.docs[0].ref;
+              const invoiceDocRef = doc(userDocRef, 'invoices', invoiceId);
+              await deleteDoc(invoiceDocRef);
+              console.log('Invoice deleted successfully!');
+          } catch (error) {
+              console.error('Error deleting invoice:', error);
+          }
+      }
+      
+      // Function to delete all invoices (uses writeBatch)
+      async function deleteAllInvoices() {
+          const loggedInUid = sessionStorage.getItem('loggedInUser');
+          if (!loggedInUid) {
+            console.error('User not authenticated. Cannot delete all invoices.');
+            return;
+          }
+      
+          const usersCollectionRef = collection(db, 'users');
+          const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+      
+          try {
+              const querySnapshot = await getDocs(q);
+              if (querySnapshot.empty) {
+                  console.error('No user document found with the matching UID. Cannot delete all invoices.');
+                  return;
+              }
+      
+              const userDocRef = querySnapshot.docs[0].ref;
+              const invoicesCollectionRef = collection(userDocRef, 'invoices');
+              const invoicesSnapshot = await getDocs(invoicesCollectionRef);
+      
+              // Use writeBatch(db) (modular SDK) instead of db.batch()
+              const batch = writeBatch(db);
+              invoicesSnapshot.forEach((d) => {
+                  batch.delete(doc(userDocRef, 'invoices', d.id));
+              });
+      
+              await batch.commit();
+              console.log('All invoices deleted successfully!');
+          } catch (error) {
+              console.error('Error deleting all invoices:', error);
+          }
+      }
+      
+      
+      // Function to calculate all totals and update the display
+      function calculateTotals() {
+          // Main items
+          const adultsQuantity = parseFloat(document.getElementById('adults-quantity').value) || 0;
+          const adultsPrice = parseFloat(document.getElementById('adults-price').value) || 0;
+          const kidsQuantity = parseFloat(document.getElementById('kids-quantity').value) || 0;
+          const kidsPrice = parseFloat(document.getElementById('kids-price').value) || 0;
+          const deluxeQuantity = parseFloat(document.getElementById('deluxe-quantity').value) || 0;
+          const deluxePrice = parseFloat(document.getElementById('deluxe-price').value) || 0;
+      
+          const adultsTotal = adultsQuantity * adultsPrice;
+          const kidsTotal = kidsQuantity * kidsPrice;
+          const deluxeTotal = deluxeQuantity * deluxePrice;
+      
+          document.getElementById('adults-total').textContent = adultsTotal.toFixed(2);
+          document.getElementById('kids-total').textContent = kidsTotal.toFixed(2);
+          document.getElementById('deluxe-total').textContent = deluxeTotal.toFixed(2);
+      
+          // Prices for other items
+          const upgradePrice = parseFloat(document.getElementById('upgrade-price').value) || 0;
+          const sideOrderPrice = parseFloat(document.getElementById('side-order-price').value) || 0;
+          const setupPrice = parseFloat(document.getElementById('setup-price').value) || 0;
+          const appetizerPrice = parseFloat(document.getElementById('appetizer-price').value) || 0;
+          const travelPrice = parseFloat(document.getElementById('travel-price').value) || 0;
+      
+          // Calculations
+          const foodSubtotal = adultsTotal + kidsTotal + deluxeTotal + upgradePrice + sideOrderPrice + setupPrice + appetizerPrice;
+          const taxRate = parseFloat(editTaxInput.value) || 0;
+          const taxAmount = foodSubtotal * (taxRate / 100);
+          const grandTotal = foodSubtotal + travelPrice + taxAmount;
+          const deposit = parseFloat(editDepositInput.value) || 0;
+          const discount = parseFloat(editDiscountInput.value) || 0;
+          const balanceDue = grandTotal - deposit - discount;
+      
+          // Update display fields
+          document.getElementById('food-subtotal').textContent = foodSubtotal.toFixed(2);
+          document.getElementById('travel-fee').textContent = travelPrice.toFixed(2);
+          document.getElementById('tax-amount').textContent = taxAmount.toFixed(2);
+          document.getElementById('grand-total').textContent = grandTotal.toFixed(2);
+          document.getElementById('deposit-display').textContent = deposit.toFixed(2);
+          document.getElementById('discount-display').textContent = discount.toFixed(2);
+          document.getElementById('balance-due').textContent = balanceDue.toFixed(2);
+      }
+      
+      // Function to save edits to an invoice
+      async function saveEdit(event) {
+        event.preventDefault();
+        const loggedInUid = sessionStorage.getItem('loggedInUser');
+        if (!loggedInUid || !currentEditInvoiceId) {
+          console.error('User not authenticated or no invoice selected for editing.');
+          return;
+        }
+      
+        const usersCollectionRef = collection(db, 'users');
+        const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+        const querySnapshot = await getDocs(q);
+        const userDocRef = querySnapshot.docs[0].ref;
+        const invoiceDocRef = doc(userDocRef, 'invoices', currentEditInvoiceId);
+      
+        // Recalculate everything before saving
+        calculateTotals();
+      
+        const lineItems = {
+            adults: {
+                quantity: parseFloat(document.getElementById('adults-quantity').value) || 0,
+                price: parseFloat(document.getElementById('adults-price').value) || 0,
+            },
+            kids: {
+                quantity: parseFloat(document.getElementById('kids-quantity').value) || 0,
+                price: parseFloat(document.getElementById('kids-price').value) || 0,
+            },
+            deluxe: {
+                quantity: parseFloat(document.getElementById('deluxe-quantity').value) || 0,
+                price: parseFloat(document.getElementById('deluxe-price').value) || 0,
+            },
+            upgrade: { price: parseFloat(document.getElementById('upgrade-price').value) || 0 },
+            sideOrder: { price: parseFloat(document.getElementById('side-order-price').value) || 0 },
+            setup: { price: parseFloat(document.getElementById('setup-price').value) || 0 },
+            appetizer: { price: parseFloat(document.getElementById('appetizer-price').value) || 0 },
+            travel: { price: parseFloat(document.getElementById('travel-price').value) || 0 }
+        };
+      
+        const foodSubtotal = (lineItems.adults.quantity * lineItems.adults.price) +
+                             (lineItems.kids.quantity * lineItems.kids.price) +
+                             (lineItems.deluxe.quantity * lineItems.deluxe.price) +
+                             lineItems.upgrade.price +
+                             lineItems.sideOrder.price +
+                             lineItems.setup.price +
+                             lineItems.appetizer.price;
+      
+        const taxRate = parseFloat(editTaxInput.value) || 0;
+        const taxAmount = foodSubtotal * (taxRate / 100);
+        const grandTotal = foodSubtotal + lineItems.travel.price + taxAmount;
+        const deposit = parseFloat(editDepositInput.value) || 0;
+        const discount = parseFloat(editDiscountInput.value) || 0;
+        const balanceDue = grandTotal - deposit - discount;
+      
+        const updatedData = {
+          invoiceId: document.getElementById('editInvoiceID').value,
+          name: document.getElementById('editName').value,
+          phoneNumber: document.getElementById('editPhoneNumber').value,
+          email: document.getElementById('editEmail').value,
+          location: document.getElementById('editLocation').value,
+          date: document.getElementById('editDate').value,
+          status: document.getElementById('editStatus').value,
+          lineItems: lineItems,
+          taxRate: taxRate,
+          deposit: deposit,
+          discount: discount,
+          total: grandTotal,
+          balance: balanceDue,
+        };
+      
+        try {
+          await updateDoc(invoiceDocRef, updatedData);
+          console.log('Invoice updated successfully!');
+          editPopup.style.display = 'none';
+        } catch (error) {
+          console.error('Error updating invoice:', error);
+        }
+      }
+      
+      // Function to fill the edit popup with invoice data
+      function fillEditPopup(invoice) {
+          document.getElementById('editInvoiceID').value = invoice.invoiceId || '';
+          document.getElementById('editName').value = invoice.name || '';
+          document.getElementById('editPhoneNumber').value = invoice.phoneNumber || '';
+          document.getElementById('editEmail').value = invoice.email || '';
+          document.getElementById('editLocation').value = invoice.location || '';
+          document.getElementById('editDate').value = invoice.date ? new Date(invoice.date).toISOString().substring(0, 16) : '';
+          document.getElementById('editTax').value = (parseFloat(invoice.taxRate) || 0);
+          document.getElementById('editDeposit').value = (parseFloat(invoice.deposit) || 0);
+          document.getElementById('editDiscount').value = (parseFloat(invoice.discount) || 0);
+          document.getElementById('editStatus').value = invoice.status || 'Unpaid';
+      
+          // Populate the new tables with line item data
+          const lineItems = invoice.lineItems || {};
+      
+          document.getElementById('adults-quantity').value = lineItems.adults?.quantity || 0;
+          document.getElementById('adults-price').value = (lineItems.adults?.price || 50).toFixed(2);
+          document.getElementById('kids-quantity').value = lineItems.kids?.quantity || 0;
+          document.getElementById('kids-price').value = (lineItems.kids?.price || 30).toFixed(2);
+          document.getElementById('deluxe-quantity').value = lineItems.deluxe?.quantity || 0;
+          document.getElementById('deluxe-price').value = (lineItems.deluxe?.price || 65).toFixed(2);
+          document.getElementById('upgrade-price').value = (lineItems.upgrade?.price || 0).toFixed(2);
+          document.getElementById('side-order-price').value = (lineItems.sideOrder?.price || 0);
+          document.getElementById('setup-price').value = (lineItems.setup?.price || 0);
+          document.getElementById('appetizer-price').value = (lineItems.appetizer?.price || 0);
+          document.getElementById('travel-price').value = (lineItems.travel?.price || 0);
+      
+          // Run the calculation to populate the summary table
+          calculateTotals();
+      }
+      
+      // Renders the table with the provided invoice data
+      function renderTable(invoicesToRender) {
+        invoiceTableBody.innerHTML = '';
+        if (invoicesToRender.length === 0) {
+          invoiceTableBody.innerHTML = `<tr><td colspan="9">No invoices found. Click 'Add Invoice' to get started!</td></tr>`;
+        } else {
+          invoicesToRender.forEach(invoice => {
+            const row = document.createElement('tr');
+      
+            // Handle undefined values
+            const invoiceId = invoice.invoiceId !== undefined ? invoice.invoiceId : '';
+            const name = invoice.name !== undefined ? invoice.name : '';
+            const date = invoice.date !== undefined ? new Date(invoice.date).toLocaleDateString() : '';
+            const total = invoice.total !== undefined ? parseFloat(invoice.total).toFixed(2) : '0.00';
+            const balance = invoice.balance !== undefined ? parseFloat(invoice.balance).toFixed(2) : '0.00';
+            const status = invoice.status !== undefined ? invoice.status : '';
+            const email = invoice.email !== undefined ? invoice.email : '';
+            const phoneNumber = invoice.phoneNumber !== undefined ? invoice.phoneNumber : '';
+            const location = invoice.location !== undefined ? invoice.location : '';
+      
+            let statusColor = 'black';
+            if (status === 'Paid') {
+              statusColor = 'green';
+            } else if (status === 'Unpaid') {
+              statusColor = 'orange';
+            } else if (status === 'Cancelled') {
+              statusColor = 'red';
+            }
+      
+            row.innerHTML = `
+              <td>${invoiceId}</td>
+              <td>${name}</td>
+              <td>${date}</td>
+              <td>${email}</td>
+              <td>${phoneNumber}</td>
+              <td>${location}</td>
+              <td>$${total}</td>
+              <td style="color: ${statusColor};">${status}</td>
+              <td>
+                <span class="material-symbols-outlined edit-icon" style="color:#F19E39" data-id="${invoice.id}">edit</span>
+                <span class="material-symbols-outlined receipt-icon" data-id="${invoice.id}" style="color:#800080">receipt</span>
+                <span class="material-symbols-outlined delete-icon" style="color:#e74c3c" data-id="${invoice.id}">delete</span>
+              </td>
+            `;
+            invoiceTableBody.appendChild(row);
+          });
+        }
+      }
+      
+      // Single, cleaned sortInvoices function
+      function sortInvoices() {
+        const sortType = sortSelect.value;
+        let sortedInvoices = [...allInvoices];
+      
+        switch (sortType) {
+          case 'oldest':
+            sortedInvoices.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+            break;
+          case 'newest':
+            sortedInvoices.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+            break;
+          case 'lowPrice':
+            sortedInvoices.sort((a, b) => (parseFloat(a.balance || 0) - parseFloat(b.balance || 0)));
+            break;
+          case 'highPrice':
+            sortedInvoices.sort((a, b) => (parseFloat(b.balance || 0) - parseFloat(a.balance || 0)));
+            break;
+          case 'alphabetical':
+            sortedInvoices.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            break;
+          case 'reverseAlphabetical':
+            sortedInvoices.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+            break;
+          case 'noSelection':
+          default:
+            break;
+        }
+      
+        renderTable(sortedInvoices);
+      }
+      
+      // Filters the global invoices array and renders the table
+      function filterAndRenderInvoices() {
+          const searchTerm = searchInput.value.toLowerCase();
+          const fromDate = fromDateInput.value ? new Date(fromDateInput.value) : null;
+          const toDate = toDateInput.value ? new Date(toDateInput.value) : null;
+      
+          const filteredInvoices = allInvoices.filter(invoice => {
+              const matchesSearch = (invoice.name?.toLowerCase() || '').includes(searchTerm) ||
+                                  (invoice.phoneNumber?.toLowerCase() || '').includes(searchTerm) ||
+                                  (invoice.email?.toLowerCase() || '').includes(searchTerm) ||
+                                  (invoice.location?.toLowerCase() || '').includes(searchTerm);
+      
+              let matchesFromDate = true;
+              if (fromDate) {
+                  const invoiceDate = invoice.date ? new Date(invoice.date) : null;
+                  matchesFromDate = invoiceDate ? invoiceDate >= fromDate : false;
+              }
+      
+              let matchesToDate = true;
+              if (toDate) {
+                  const invoiceDate = invoice.date ? new Date(invoice.date) : null;
+                  matchesToDate = invoiceDate ? invoiceDate <= toDate : false;
+              }
+      
+              return matchesSearch && matchesFromDate && matchesToDate;
+          });
+      
+          renderTable(filteredInvoices);
+      }
+      
+      async function updateTable() {
+        console.log('Updating Table...');
+        invoiceTableBody.innerHTML = '<tr><td colspan="9">Loading invoices...</td></tr>';
+      
+        try {
+          const loggedInUid = sessionStorage.getItem('loggedInUser');
+          if (!loggedInUid) {
+            console.error('sessionStorage "loggedInUser" key is missing. Cannot update table.');
+            invoiceTableBody.innerHTML = `<tr><td colspan="9">User not authenticated. Please log in.</td></tr>`;
+            return;
+          }
+      
+          const usersCollectionRef = collection(db, 'users');
+          const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+          const querySnapshot = await getDocs(q);
+      
+          if (querySnapshot.empty) {
+            console.error('No user document found with the matching UID. Cannot update table.');
+            invoiceTableBody.innerHTML = `<tr><td colspan="9">No user data found.</td></tr>`;
+            return;
+          }
+      
+          const userDocRef = querySnapshot.docs[0].ref;
+          const invoicesCollectionRef = collection(userDocRef, 'invoices');
+      
+          onSnapshot(invoicesCollectionRef, (invoicesSnapshot) => {
+            allInvoices = []; // Clear the old data
+            invoicesSnapshot.forEach(d => {
+              allInvoices.push({ id: d.id, ...d.data() });
+            });
+      
+            // By default apply current sort choice
+            sortInvoices();
+          }, (error) => {
+            console.error('Failed to Update Table:', error);
+            invoiceTableBody.innerHTML = `<tr><td colspan="9">Error loading invoices.</td></tr>`;
+          });
+        } catch (error) {
+          console.error('Error in updateTable:', error);
+          invoiceTableBody.innerHTML = `<tr><td colspan="9">An error occurred. Please check the console.</td></tr>`;
+        }
+      }
+      
+      // Add event listener to the "Add Invoice" button
+      document.addEventListener('DOMContentLoaded', () => {
+        sessionStorage.removeItem('invoiceForCalculator');
+        addInvoiceButton.disabled = true;
+        addInvoiceButton.addEventListener('click', addInvoice);
+      
+        deleteAllButton.disabled = true;
+        deleteAllButton.addEventListener('click', () => {
+            showConfirmModal('Are you sure you want to delete ALL invoices?', (firstConfirmed) => {
+                if (firstConfirmed) {
+                    showConfirmModal('This action cannot be undone. Are you absolutely sure?', (secondConfirmed) => {
+                        if (secondConfirmed) {
+                            deleteAllInvoices();
+                        }
+                    }, () => {}); // No action on 'No' for the second modal
+                }
+            }, () => {}); // No action on 'No' for the first modal
+        });
+      
+      
+        // Event listeners for the new input fields to trigger calculations
+        document.querySelectorAll('#editForm input[type="number"], #editForm select').forEach(input => {
+          input.addEventListener('input', calculateTotals);
+        });
+      
+        // Add event listeners for sorting, search and date inputs
+        sortSelect.addEventListener('change', sortInvoices);
+        searchInput.addEventListener('input', filterAndRenderInvoices);
+        fromDateInput.addEventListener('change', filterAndRenderInvoices);
+        toDateInput.addEventListener('change', filterAndRenderInvoices);
+      
+        // Add event listener for the icons
+        invoiceTableBody.addEventListener('click', (e) => {
+          const target = e.target;
+          if (target.classList.contains('delete-icon')) {
+            const invoiceId = target.dataset.id;
+            if (invoiceId) {
+              showConfirmModal('Are you sure you want to delete this invoice?', (confirmed) => {
+                  if (confirmed) {
+                      deleteInvoice(invoiceId);
+                  }
+              }, () => {});
+            }
+          } else if (target.classList.contains('edit-icon')) {
+            currentEditInvoiceId = target.dataset.id;
+            const invoiceToEdit = allInvoices.find(inv => inv.id === currentEditInvoiceId);
+            if (invoiceToEdit) {
+                fillEditPopup(invoiceToEdit);
+                editPopup.style.display = 'flex';
+            }
+          }
+          else if (target.classList.contains('receipt-icon')) {
+            const invoiceId = target.dataset.id;
+           const invoice = allInvoices.find(inv => inv.id === invoiceId);
+           console.log('Invoice Requested');
+           console.log(invoice);
+            if (invoice) {
+              console.log('Saving to sessionStorage...');
+              const dataToSave = {
+               name: invoice.name || '',
+               id: invoice.invoiceId || '',
+               date: invoice.date || '',
+               location: invoice.location || '',
+               phone: invoice.phoneNumber || '',
+               email: invoice.email || '',
+               travel: invoice.lineItems?.travel?.price || '',
+               deposit: invoice.deposit || '',
+               discount: invoice.discount || '',
+               tax: invoice.taxRate || '',
+               adults: invoice.lineItems?.adults || { quantity: '', price: 50 },
+               kids: invoice.lineItems?.kids || { quantity: '', price: 30 },
+               deluxe: invoice.lineItems?.deluxe || { quantity: '', price: 65 },
+               setup: invoice.lineItems?.setup || { price: '' },
+               upgrade: invoice.lineItems?.upgrade || { price: '' },
+               sideorder: invoice.lineItems?.sideOrder || { price: '' },
+               appetizer: invoice.lineItems?.appetizer || { price: '' }
+              };
+             sessionStorage.setItem('invoiceForCalculator', JSON.stringify(dataToSave));
+             window.location.href = 'calculator';
+            }
+          }
+          else {
+            console.warn('Invoice returned null');
+          }
+
+        });
+      
+        // Add event listener for the save and cancel buttons
+        saveEditButton.addEventListener('click', saveEdit);
+        cancelEditButton.addEventListener('click', () => {
+          editPopup.style.display = 'none';
+        });
+
+        const clearFiltersButton = document.getElementById('clearFiltersButton');
+
+        clearFiltersButton.addEventListener('click', () => {
+         // reset inputs
+          searchInput.value = '';
+          fromDateInput.value = '';
+          toDateInput.value = '';
+          sortSelect.value = 'noSelection';
+
+          // re-render full table
+          renderTable(allInvoices);
+        });
+
+      
+        initFirebase();
+      });
+    </script>
+	</div>
+</Layout>

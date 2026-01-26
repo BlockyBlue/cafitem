@@ -1,0 +1,1237 @@
+---
+import Layout from '../../layouts/AppLayout.astro';
+---
+
+<Layout headerName="Invoice Finder " headerVersion="v1.1.1">
+  <div slot="body">
+      <main class="info-area">
+    <div class="warning">
+      <span style="font-size: 30px;">WARNING:</span> 
+      This product is still in testing. Please double check your results.
+    </div>
+    <div style="margin-bottom: 6px; font-size: 13px; color: #444;">
+      <span id="modelDesc"></span>
+    </div>
+    <div class="input-wrapper">
+      <textarea
+        id="foodinput"
+        class="input_box"
+        placeholder="Insert Items Here"
+      ></textarea>
+      <div
+        id="foodlist"
+        class="input_box"
+        style="position: relative; z-index: 1; pointer-events: none;
+               white-space: pre-wrap; line-height: 1.4;
+               font-size: 16px; background-color: #fff; color: #000;"
+      ></div>
+    </div>
+    <div style="margin: 10px 0;">
+      <span id="saveStatus" style="font-size:12px;color:#3a3;"></span>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="numbering">1)</span><span class="label">List Number</span></div>
+      <div class="legend-item"><span class="found">chicken</span><span class="label">Item</span></div>
+      <div class="legend-item"><span class="connector">&amp;</span><span class="label">Connector</span></div>
+      <div class="legend-item"><span class="multiplier">x2</span><span class="label">Multiplier</span></div>
+      <div class="legend-item"><span class="adultCtx">adult</span><span class="label">Adult</span></div>
+      <div class="legend-item"><span class="kidCtx">kids</span><span class="label">Kids</span></div>
+      <div class="legend-item"><span class="rejected">no steak</span><span class="label">Rejection / Allergy</span></div>
+    </div>
+
+    <button class="copy-button" onclick="showItemsScanned()">Items</button>
+
+    <!-- Items to Scan Popup -->
+
+    <div class="ad-background" style="display: none;" id="editItemsPopup">
+    <div class="ad-popup" style="background-color:#93c4ff;" id="ad-popup">
+    <h2>Items To Scan:</h2>
+    <button class="add-item" id="add-item" onclick="addItem()">Add Item</button>
+    <div class="scrollableTable">
+    <table id="itemsTable">
+     <thead>
+        <tr>
+          <th>Item</th>
+          <th>Other Spellings (Separate with Commas)</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="itemsTableBody"></tbody>
+    </table>
+    </div>
+    <button class="remove-item" onclick="hideItemsScanned()">Close</button>
+    </div>
+    </div>
+  </main>
+  <aside>
+    <h2>Found Items:</h2>
+      <label style="font-size:14px;">
+        <input type="checkbox" id="fuzzyToggle" onchange="countItems()" checked> Enable fuzzy matching
+      </label>
+    <p id="initMessage">Once items have been found, they will appear here.</p>
+    <div id="resultsContainer"></div>
+  </aside>
+
+<script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById('foodinput').addEventListener('input', countItems);
+    loadItems();
+  });
+  document.querySelectorAll('.input_box').forEach(textarea => {
+  textarea.addEventListener('input', function() {
+    // Temporarily append a character to force the browser to register the extra line height
+    const tempChar = '\n';
+    const originalValue = this.value;
+    
+    // Check for trailing newlines
+    const hasTrailingNewline = originalValue.endsWith('\n');
+    
+    if (hasTrailingNewline) {
+      this.value += tempChar;
+    }
+    
+    // Reset height before setting to scrollHeight
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+    
+    // Restore the original value
+    if (hasTrailingNewline) {
+      this.value = originalValue;
+    }
+  });
+});
+
+  function showItemsScanned() {
+    document.getElementById('editItemsPopup').style.display = 'flex';
+  }
+  function hideItemsScanned() {
+    document.getElementById('editItemsPopup').style.display = 'none';
+  }
+
+function saveTable() {
+  const body = document.getElementById("itemsTableBody");
+  const rows = [];
+  for (let i = 0; i < body.rows.length; i++) {
+    const row = body.rows[i];
+    const item = row.querySelector("input[id^='item']").value;
+    const alt = row.querySelector("input[id^='alt']").value;
+    rows.push({ item, alt });
+  }
+  localStorage.setItem("itemsTable", JSON.stringify(rows));
+  document.getElementById("saveStatus").textContent = "Saved!";
+  setTimeout(() => (document.getElementById("saveStatus").textContent = ""), 1500);
+}
+
+function loadItems() {
+  const body = document.getElementById("itemsTableBody");
+  body.innerHTML = ""; // clear out all old rows
+
+  const fallbackItems = [
+    { item: 'Chicken', alt: '' },
+    { item: 'Steak', alt: '' },
+    { item: 'Shrimp', alt: '' },
+    { item: 'Scallop', alt: '' },
+    { item: 'Noodle', alt: '' },
+    { item: 'Dumpling', alt: '' },
+    { item: 'Edamame', alt: '' },
+    { item: 'Salmon', alt: '' },
+    { item: 'Fillet', alt: '' },
+    { item: 'Lobster', alt: '' },
+    { item: 'Tofu', alt: '' },
+    { item: 'White Rice', alt: '' },
+    { item: 'Fried Rice', alt: '' },
+    { item: 'Vegetable', alt: 'Veggie, Veg' }
+  ];
+
+  const saved = JSON.parse(localStorage.getItem("itemsTable")) || fallbackItems;
+  saved.forEach((rowData, idx) => addRow(rowData.item, rowData.alt, idx));
+}
+
+function addRow(item = "", alt = "", idx) {
+  const body = document.getElementById("itemsTableBody");
+  const newRow = body.insertRow();
+  newRow.insertCell().innerHTML = `<input type="text" id="item${idx}" class="info-box" style="width: 100px" value="${item}" placeholder="Item">`;
+  newRow.insertCell().innerHTML = `<input type="text" id="alt${idx}" class="info-box" style="width: 300px" value="${alt}" placeholder="Other Spellings (Separate with commas)">`;
+  newRow.insertCell().innerHTML = `<span id="delete${idx}" class="material-symbols-outlined delete-icon" style="cursor:pointer">delete</span>`;
+
+  newRow.querySelectorAll("input").forEach(input => {
+    input.addEventListener("input", saveTable);
+  });
+  newRow.querySelector(".delete-icon").addEventListener("click", () => {
+    newRow.remove();
+    saveTable();
+    reassignIds();
+  });
+}
+
+function addItem() {
+  const body = document.getElementById("itemsTableBody");
+  const idx = body.rows.length;
+  addRow("", "", idx);
+  saveTable();
+}
+
+function reassignIds() {
+  const body = document.getElementById("itemsTableBody");
+  for (let i = 0; i < body.rows.length; i++) {
+    const row = body.rows[i];
+    row.cells[0].querySelector("input").id = `item${i}`;
+    row.cells[1].querySelector("input").id = `alt${i}`;
+    row.cells[2].querySelector("span").id = `delete${i}`;
+  }
+}
+
+function testProgram() {
+  // === 1. Define what the results SHOULD be ===
+  const correctResults = {
+    Chicken: { adult: 1, kid: 0 },
+    Steak: { adult: 1, kid: 0 },
+    Vegetable: { adult: 2, kid: 0 },
+    Scallop: { adult: 1, kid: 0 },
+    Fillet: { adult: 1, kid: 0 },
+    Noodle: { adult: 0, kid: 5 },
+    Dumpling: { adult: 0, kid: 2 },
+    Edamame: { adult: 24, kid: 0 }, // 6 orders × 4
+    Salmon: { adult: 12, kid: 0 }   // 6 orders × 2
+  };
+
+  // === 2. Define the test inputs ===
+  const tests = {
+    "Normal Test": `Chicken, steak
+veggies, veggies (2 veggies)
+Scallop, fillet (no veggies)
+Kids: 5 noodles, 2 dumplings
+6 orders of 4 edamame and 2 salmon`,
+
+    "Fuzzy Variation": `Chickensteak
+vegges, veggis (2 vggies)
+Scalop, fileet (no vegies)
+Kids: 5 nodles, 2 duplings
+6 orers o 4 edamami and 2 samon`,
+
+    "List Variation": `1. Chicken, steak
+2: veggies, veggies (2 veggies)
+3.) Scallop, fillet (no veggies)
+(4) (Kids) 5 noodles, 2 dumplings
+(5.) 6 orders of 4 edamame and 2 salmon`,
+
+    "Fuzzy List Variation": `1. Chickensteak
+2: vegges, veggis (2 vggies)
+3.) Scalop, fileet (no vegies)
+(4) (Kids) 5 nodles, 2 duplings
+(5.) 6 orers o 4 edamami and 2 samon`,
+  "Star/Parenthesis Test": `Parenthesis:
+Chicken, steak
+Veggies, veggies (Double Veggies)
+Scallop, fillet *No veggies
+*Kids* noodles (5), dumplings, dumplings (double)
+6 of edamame (4) and salmon (double)
+`
+  };
+
+  // === 3. Run the tests ===
+  const textarea = document.getElementById("foodinput");
+
+  for (let [name, input] of Object.entries(tests)) {
+    textarea.value = input;
+    countItems(); // run the scanner
+
+    const result = JSON.parse(localStorage.getItem("itemCounts") || "{}");
+
+    // Compare with correctResults
+    let failed = false;
+    for (let item in correctResults) {
+      const expected = correctResults[item];
+      const actual = result[item] || { adult: 0, kid: 0 };
+      if (expected.adult !== actual.adult || expected.kid !== actual.kid) {
+        console.error(`❌ ${name} failed on ${item}. Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+        return `${name} failed on ${item}`;
+      }
+    }
+  }
+
+  return "Test Successful";
+}
+
+function countItems() {
+  // === grab raw text and show it exactly as typed ===
+  const originalText = document.getElementById('foodinput').value || "";
+  const foodlist = document.getElementById('foodlist');
+  const fuzzyToggleElem = document.getElementById('fuzzyToggle');
+  const fuzzyEnabled = fuzzyToggleElem ? !!fuzzyToggleElem.checked : true;
+  const rows = document.getElementById("itemsTableBody").rows;
+
+  // show raw text first (preserve spaces)
+  foodlist.textContent = originalText;
+  foodlist.style.whiteSpace = "pre-wrap";
+
+  // === build itemGroups from items table ===
+  const itemGroups = [];
+  for (let row of rows) {
+    const baseRaw = (row.querySelector("input[id^='item']")?.value || "").trim();
+    if (!baseRaw) continue;
+    const base = baseRaw;
+    const baseLower = baseRaw.toLowerCase();
+    const altRaw = (row.querySelector("input[id^='alt']")?.value || "").trim().toLowerCase();
+    const aliases = altRaw ? altRaw.split(",").map(a => a.trim()).filter(Boolean) : [];
+    const plural = baseLower.endsWith("s") ? baseLower : baseLower + "s";
+    const allAliases = [...aliases];
+    aliases.forEach(a => { if (!a.endsWith("s")) allAliases.push(a + "s"); });
+    itemGroups.push({ base, baseLower, plural, aliases: allAliases });
+  }
+
+  // Flattened items list (lowercase) longest-first for greedy matching
+  const itemsList = Array.from(new Set(
+    itemGroups.flatMap(g => [g.baseLower, g.plural, ...g.aliases])
+  )).filter(Boolean).sort((a,b) => b.length - a.length);
+
+  // === fuzzy compare (levenshtein <= 1) ===
+  function fuzzyCompare(a, b) {
+    if (!fuzzyEnabled) return a === b;
+    if (a === b) return true;
+    if (Math.abs(a.length - b.length) > 1) return false;
+    const n = a.length, m = b.length;
+    const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+    for (let i = 0; i <= n; i++) dp[i][0] = i;
+    for (let j = 0; j <= m; j++) dp[0][j] = j;
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        const cost = a[i-1] === b[j-1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i-1][j] + 1, dp[i][j-1] + 1, dp[i-1][j-1] + cost);
+      }
+    }
+    return dp[n][m] <= 1;
+  }
+
+  const wordToNumber = {
+    one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,
+    double:2,triple:3,just:1,only:1
+  };
+
+  // === Better tokenization that preserves word boundaries ===
+  function tokenizeLine(line) {
+    const tokens = [];
+    // capture (), {}, [] as parenthesis tokens; keep other groups similar
+    const regex = /(\s+)|([\(\{\[][^\)\}\]]*[\)\}\]])|(\d+)|([A-Za-z]+)|([.,:;()&+\/\|\-#])|([^A-Za-z0-9\s])/g;
+    let match;
+    let lastIndex = 0;
+    
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        // Add any missed characters
+        tokens.push({
+          text: line.substring(lastIndex, match.index),
+          start: lastIndex,
+          end: match.index,
+          type: 'other'
+        });
+      }
+      
+      const text = match[0];
+      const start = match.index;
+      const end = match.index + text.length;
+      
+      let type = 'other';
+      if (match[1]) type = 'whitespace';
+  else if (match[2]) type = 'parenthesis';
+      else if (match[3]) type = 'number';
+      else if (match[4]) type = 'word';
+      else if (match[5]) type = 'punctuation';
+      
+      tokens.push({ text, start, end, type });
+      lastIndex = end;
+    }
+    
+    if (lastIndex < line.length) {
+      tokens.push({
+        text: line.substring(lastIndex),
+        start: lastIndex,
+        end: line.length,
+        type: 'other'
+      });
+    }
+    
+    return tokens;
+  }
+
+  // helper to match multi-word item starting at token index
+  function matchItemAt(tokens, startIdx) {
+    let words = [];
+    let idx = startIdx;
+    let lastIdx = startIdx;
+    
+    while (idx < tokens.length && words.length < 3) {
+      if (tokens[idx].type === 'whitespace') {
+        idx++;
+        continue;
+      }
+      if (tokens[idx].type === 'word') {
+        words.push(tokens[idx].text.toLowerCase());
+        lastIdx = idx;
+        idx++;
+      } else {
+        break;
+      }
+    }
+    
+    if (words.length === 0) return null;
+    
+    for (let take = words.length; take >= 1; take--) {
+      const candidate = words.slice(0, take).join(" ");
+      for (let gr of itemGroups) {
+        if (fuzzyCompare(candidate, gr.baseLower) || 
+            fuzzyCompare(candidate, gr.plural) || 
+            gr.aliases.some(a => fuzzyCompare(candidate, a))) {
+          
+          // Find the actual end token for this match
+          let endIdx = startIdx;
+          let wordCount = 0;
+          for (let i = startIdx; i < tokens.length && wordCount < take; i++) {
+            if (tokens[i].type === 'word') {
+              wordCount++;
+              endIdx = i;
+            }
+          }
+          
+          return { 
+            gr, 
+            startIdx, 
+            endIdx,
+            start: tokens[startIdx].start,
+            end: tokens[endIdx].end
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  // === Reset persistent context for each evaluation ===
+  window._persistentKidMode = false;
+  window._currentContext = 'adult';
+
+  // === main datastructures ===
+  const counts = {};
+  const ranges = [];
+
+  // Build lines with offsets
+  const lines = originalText.split(/\r?\n/);
+  let cumulativeOffset = 0;
+
+  // Initialize persistent state
+  if (typeof window._persistentKidMode === 'undefined') window._persistentKidMode = false;
+  if (typeof window._currentContext === 'undefined') window._currentContext = 'adult';
+
+  for (let li = 0; li < lines.length; li++) {
+    const rawLine = lines[li];
+    const lineStartOffset = cumulativeOffset;
+    cumulativeOffset += rawLine.length + 1;
+
+    if (rawLine === "") continue;
+
+    const lowerLine = rawLine.toLowerCase();
+    const tokens = tokenizeLine(rawLine);
+
+    // Pre-scan for items outside parentheses
+    const outsidePositions = {};
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (token.type === 'parenthesis' || token.type === 'whitespace') continue;
+      if (token.type === 'word') {
+        const match = matchItemAt(tokens, i);
+        if (match) {
+          if (!outsidePositions[match.gr.base]) outsidePositions[match.gr.base] = [];
+          outsidePositions[match.gr.base].push(i);
+        }
+      }
+    }
+    const lineHasItem = Object.keys(outsidePositions).length > 0;
+
+    // Context handling (reworked to match your spec exactly):
+    // - If line contains kid-word AND an item => apply kid to this line only (no persistent change)
+    // - If line contains kid-word AND NO item     => set persistent kid mode (this line + below) until an adult line appears
+    // - If line contains adult(s) word           => clear persistent kid mode immediately
+    const hasKidWord = /\b(kid|kids|child|children)\b/i.test(lowerLine);
+    const hasAdultWord = /\badult(s)?\b/i.test(lowerLine);
+
+    if (hasAdultWord) {
+      window._persistentKidMode = false;
+      window._currentContext = "adult";
+    }
+
+// If kid word and no item -> persist downward (this line and below)
+// Only persist if the kid-word is the only significant word on the line
+if (hasKidWord && !lineHasItem) {
+  // collect significant words (exclude name-like prefixes like "Mica:" we'll handle names separately)
+  const sigWords = tokens
+    .filter(t => t.type === 'word')
+    .map(t => t.text.toLowerCase())
+    .filter(Boolean);
+
+  // If the only significant word is the kid token itself, persist; otherwise treat as per-line only.
+  const onlyKidWord = sigWords.length === 1 && /^(kid|kids|child|children)$/i.test(sigWords[0]);
+
+  if (onlyKidWord) {
+    window._persistentKidMode = true;
+    window._currentContext = "kid";
+  } else {
+    // don't flip global persistence while the user is typing a line that contains other words
+    // (we will still treat the line itself as kid if it contains both kid-word and an item)
+  }
+}
+
+
+    // Determine this line's context:
+    // - if kid word and item on same line -> kid for this line only
+    // - else if persistent kid mode -> kid
+    // - else use current global context
+    let lineContext = window._currentContext;
+    if (hasKidWord && lineHasItem) {
+      lineContext = "kid";
+    } else if (window._persistentKidMode) {
+      lineContext = "kid";
+    }
+
+    // --- NEW: leading-name detection and highlighting ---
+    // If there's a probable leading name like "Mica:" or "Stacy -" or "John Doe:" highlight it with the current line context.
+    const leadingNameMatch = rawLine.match(/^\s*([A-Za-z][A-Za-z'’\-\s]{0,30}?[A-Za-z])\s*[:\-]/);
+    if (leadingNameMatch) {
+      // Include optional trailing "#<number>" or plain number as part of the name (e.g. "Guest #2:" or "Guest 2:")
+      const nameText = leadingNameMatch[1];
+      const nameStart = rawLine.indexOf(nameText);
+      let nameEnd = nameStart + nameText.length;
+      const after = rawLine.slice(nameEnd);
+      const numMatch = after.match(/^\s*(?:#\d+|\d+)/);
+      if (numMatch) {
+        nameEnd += numMatch[0].length;
+      }
+      ranges.push({
+        start: lineStartOffset + nameStart,
+        end: lineStartOffset + nameEnd,
+        className: lineContext === "kid" ? "kidCtx" : "adultCtx"
+      });
+    }
+
+    // Parentheses pre-processing
+    const parenActions = {};
+    const outsideRejectSet = new Set();
+
+    function getInner(tokenText) {
+      if (!tokenText || tokenText.length < 2) return '';
+      return tokenText.slice(1, -1).trim();
+    }
+
+    // === NEW: Improved list-number detection using tokens (greedy punctuation capture) ===
+    let listNumberDetected = false;
+    let listNumberEndTokenIdx = -1;
+    // find first non-whitespace token
+    let firstNonWS = -1;
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i].type !== 'whitespace') { firstNonWS = i; break; }
+    }
+
+    if (firstNonWS !== -1) {
+      const t0 = tokens[firstNonWS];
+
+      // If first token is a parenthesis token that contains only a number +/- punctuation, treat as list number.
+      if (t0.type === 'parenthesis') {
+        const inner = t0.text.slice(1, -1).trim(); // content inside parentheses
+        // inner like "5", "5.", "5.)", "5)" etc. digits with optional punctuation
+        if (/^\d+[\.\):;,\-]*$/.test(inner)) {
+          // treat this entire parenthesis token as list numbering
+          ranges.push({
+            start: lineStartOffset + t0.start,
+            end: lineStartOffset + t0.end,
+            className: 'numbering'
+          });
+          listNumberDetected = true;
+          listNumberEndTokenIdx = firstNonWS;
+        } 
+      } else if (t0.type === 'number') {
+        // Collect following punctuation tokens greedily
+        let endIdx = firstNonWS;
+        let endPos = tokens[firstNonWS].end;
+        let punctuationCollected = "";
+        for (let j = firstNonWS + 1; j < tokens.length; j++) {
+          if (tokens[j].type === 'punctuation') {
+            punctuationCollected += tokens[j].text;
+            endIdx = j;
+            endPos = tokens[j].end;
+            continue;
+          }
+          if (tokens[j].type === 'parenthesis' && /^\)$/.test(tokens[j].text)) {
+            punctuationCollected += tokens[j].text;
+            endIdx = j;
+            endPos = tokens[j].end;
+            continue;
+          }
+          break;
+        }
+        if (/[.\):;,\-]/.test(punctuationCollected)) {
+          ranges.push({
+            start: lineStartOffset + tokens[firstNonWS].start,
+            end: lineStartOffset + endPos,
+            className: 'numbering'
+          });
+          listNumberDetected = true;
+          listNumberEndTokenIdx = endIdx;
+        }
+      }
+    }
+
+    // === orders detection: improved fuzzy tolerance for "order" and "of" (handles typos like "orers", "o") ===
+    let rowMultiplier = 1;
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const token1 = tokens[i];
+      const token2 = tokens[i + 1];
+      
+      if (token1.type === 'number' && token2.type === 'word') {
+        const t2l = token2.text.toLowerCase();
+        const isOrderWord = t2l.includes('order') || fuzzyCompare(t2l, 'order');
+        if (isOrderWord) {
+          let endIdx = i + 1;
+          if (i + 2 < tokens.length && tokens[i + 2].type === 'word') {
+            const t3l = tokens[i + 2].text.toLowerCase();
+            if (t3l === 'of' || fuzzyCompare(t3l, 'of')) {
+              endIdx = i + 2;
+            }
+          }
+          
+          ranges.push({
+            start: lineStartOffset + token1.start,
+            end: lineStartOffset + tokens[endIdx].end,
+            className: 'multiplier'
+          });
+          
+          rowMultiplier = parseInt(token1.text, 10);
+          break;
+        }
+      }
+    }
+
+    // === Parenthesis scanning for reject/process (skip paren tokens that are list-numberings) ===
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+  if (token.type !== 'parenthesis') continue;
+  if (i === listNumberEndTokenIdx && listNumberDetected) continue; // skip list-number parenthesis
+  const inner = getInner(token.text).toLowerCase();
+      if (/\b(no|cannot|allerg)/i.test(inner)) {
+        parenActions[i] = { action: 'reject' };
+        continue;
+      }
+      
+      const numPat = /^(?:(\d+|one|two|three|four|five|six|seven|eight|nine|double|triple|just|only)\b)[\s,-:]*([a-z][a-z\s]*)$/i;
+      const nm = inner.match(numPat);
+      if (nm) {
+        const numToken = nm[1].toLowerCase();
+        const qty = wordToNumber[numToken] || parseInt(numToken) || 1;
+        const itemText = nm[2].trim().split(/\s+/).slice(0, 3).join(" ").toLowerCase();
+        
+        let matchedGr = null;
+        for (let gr of itemGroups) {
+          if (fuzzyCompare(itemText, gr.baseLower) || 
+              fuzzyCompare(itemText, gr.plural) || 
+              gr.aliases.some(a => fuzzyCompare(itemText, a))) {
+            matchedGr = gr;
+            break;
+          }
+        }
+        
+        if (matchedGr) {
+          const outsideIndices = outsidePositions[matchedGr.base] || [];
+          const outsideCount = outsideIndices.length;
+          
+          if (outsideCount === qty) {
+            parenActions[i] = { action: 'reject' };
+          } else if (outsideCount < qty && outsideCount > 0) {
+            parenActions[i] = { action: 'process', gr: matchedGr, qty };
+            for (let idx of outsideIndices) outsideRejectSet.add(idx);
+          } else {
+            parenActions[i] = { action: 'process', gr: matchedGr, qty };
+          }
+        }
+      }
+    }
+
+    // Main scanning pass
+    let seenItemOrMultOrConn = false;
+    let pendingQuantity = null;
+
+    for (let idx = 0; idx < tokens.length; idx++) {
+      const token = tokens[idx];
+      
+      if (token.type === 'whitespace') continue;
+
+      // Skip tokens covered by initial list-number detection
+      if (listNumberDetected && listNumberEndTokenIdx >= 0 && idx <= listNumberEndTokenIdx) {
+        continue;
+      }
+
+      // Parenthesis handling
+      if (token.type === 'parenthesis') {
+        const action = parenActions[idx];
+        
+        if (action && action.action === 'reject') {
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'rejected'
+          });
+          continue;
+        }
+        
+        if (action && action.action === 'process') {
+          const { gr, qty } = action;
+          const addQty = (qty || 1) * rowMultiplier;
+          if (!counts[gr.base]) counts[gr.base] = { adult: 0, kid: 0 };
+          if (lineContext === "kid") counts[gr.base].kid += addQty;
+          else counts[gr.base].adult += addQty;
+          
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'found'
+          });
+          continue;
+        }
+
+        // Check for rejection keywords
+    const inner = getInner(token.text).toLowerCase();
+        if (/\b(no|cannot|allerg)/i.test(inner)) {
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'rejected'
+          });
+          continue;
+        }
+
+        // NEW: Process parentheses content separately for highlighting (skip purely numeric parentheses already handled earlier)
+  const innerText = getInner(token.text);
+        if (innerText) {
+          // Tokenize the inner content
+          const innerTokens = tokenizeLine(innerText);
+          const parenStart = token.start + 1; // Skip opening parenthesis
+          
+          for (let innerIdx = 0; innerIdx < innerTokens.length; innerIdx++) {
+            const innerToken = innerTokens[innerIdx];
+            if (innerToken.type === 'whitespace') continue;
+            
+            // Check if it's a context word like "kids"
+            if (innerToken.type === 'word') {
+              if (/^(kid|kids|child|children)$/i.test(innerToken.text)) {
+                ranges.push({
+                  start: lineStartOffset + parenStart + innerToken.start,
+                  end: lineStartOffset + parenStart + innerToken.end,
+                  className: 'kidCtx'
+                });
+                continue;
+              }
+              
+              if (/^adult(s)?$/i.test(innerToken.text)) {
+                ranges.push({
+                  start: lineStartOffset + parenStart + innerToken.start,
+                  end: lineStartOffset + parenStart + innerToken.end,
+                  className: 'adultCtx'
+                });
+                continue;
+              }
+              
+              // Try to match as item
+              const innerMatch = matchItemAt(innerTokens, innerIdx);
+              if (innerMatch) {
+                ranges.push({
+                  start: lineStartOffset + parenStart + innerMatch.start,
+                  end: lineStartOffset + parenStart + innerMatch.end,
+                  className: 'found'
+                });
+                
+                // Update counts
+                const qty = 1 * rowMultiplier;
+                if (!counts[innerMatch.gr.base]) counts[innerMatch.gr.base] = { adult: 0, kid: 0 };
+                if (lineContext === "kid") counts[innerMatch.gr.base].kid += qty;
+                else counts[innerMatch.gr.base].adult += qty;
+                
+                innerIdx = innerMatch.endIdx; // Skip to end of matched item
+                continue;
+              }
+            }
+          }
+        }
+        continue;
+      }
+
+      // Asterisk/star handling: treat *...* and *... (to end of line) like parentheses
+      if (token.type === 'punctuation' && token.text === '*') {
+        // handle runs of '*' (e.g., *****) by skipping consecutive '*' until content starts
+        function countStarsAt(pos) {
+          let c = 0;
+          while (pos + c < rawLine.length && rawLine[pos + c] === '*') c++;
+          return c;
+        }
+
+        const runStart = token.start;
+        const leadStars = countStarsAt(runStart);
+        const innerStart = runStart + leadStars; // first non-star after leading run
+
+        // find closing star: locate next '*' after innerStart; if that is a run, back up to its first star
+        let closePos = -1;
+        for (let p = innerStart; p < rawLine.length; p++) {
+          if (rawLine[p] === '*') { closePos = p; break; }
+        }
+
+        const startPos = runStart;
+        const endPos = closePos !== -1 ? (function(){
+          // consume trailing stars
+          let e = closePos; while (e < rawLine.length && rawLine[e] === '*') e++; return e;
+        })() : rawLine.length;
+
+        const innerText = innerStart < (closePos === -1 ? rawLine.length : closePos) ? rawLine.slice(innerStart, closePos === -1 ? rawLine.length : closePos).trim() : '';
+
+        // If inner contains rejection keywords, highlight whole star-block as rejected
+        if (/\b(no|cannot|allerg)/i.test(innerText.toLowerCase())) {
+          ranges.push({ start: lineStartOffset + startPos, end: lineStartOffset + endPos, className: 'rejected' });
+          if (closeIdx !== -1) idx = closeIdx;
+          else idx = tokens.length;
+          continue;
+        }
+
+        // If inner is a context word, highlight accordingly
+        if (/^\s*(kid|kids|child|children)\s*$/i.test(innerText)) {
+          ranges.push({ start: lineStartOffset + startPos, end: lineStartOffset + endPos, className: 'kidCtx' });
+          if (closeIdx !== -1) idx = closeIdx; else idx = tokens.length;
+          continue;
+        }
+        if (/^\s*adult(s)?\s*$/i.test(innerText)) {
+          ranges.push({ start: lineStartOffset + startPos, end: lineStartOffset + endPos, className: 'adultCtx' });
+          window._persistentKidMode = false;
+          window._currentContext = 'adult';
+          if (closeIdx !== -1) idx = closeIdx; else idx = tokens.length;
+          continue;
+        }
+
+        // Otherwise, tokenize inner content and reuse parenthesis-like processing: highlight items and context words inside
+        if (innerText) {
+          const innerTokens = tokenizeLine(innerText);
+          const parenStart = innerStart; // innerTokens indices are relative to innerText, map by adding innerStart
+
+          for (let innerIdx = 0; innerIdx < innerTokens.length; innerIdx++) {
+            const innerToken = innerTokens[innerIdx];
+            if (innerToken.type === 'whitespace') continue;
+
+            if (innerToken.type === 'word') {
+              // context words
+              if (/^(kid|kids|child|children)$/i.test(innerToken.text)) {
+                ranges.push({ start: lineStartOffset + parenStart + innerToken.start, end: lineStartOffset + parenStart + innerToken.end, className: 'kidCtx' });
+                continue;
+              }
+              if (/^adult(s)?$/i.test(innerToken.text)) {
+                ranges.push({ start: lineStartOffset + parenStart + innerToken.start, end: lineStartOffset + parenStart + innerToken.end, className: 'adultCtx' });
+                window._persistentKidMode = false;
+                window._currentContext = 'adult';
+                continue;
+              }
+
+              // Try to match items inside the inner tokens
+              const innerMatch = matchItemAt(innerTokens, innerIdx);
+              if (innerMatch) {
+                ranges.push({ start: lineStartOffset + parenStart + innerMatch.start, end: lineStartOffset + parenStart + innerMatch.end, className: 'found' });
+                const qty = 1 * rowMultiplier;
+                if (!counts[innerMatch.gr.base]) counts[innerMatch.gr.base] = { adult: 0, kid: 0 };
+                if (lineContext === 'kid') counts[innerMatch.gr.base].kid += qty; else counts[innerMatch.gr.base].adult += qty;
+                innerIdx = innerMatch.endIdx;
+                continue;
+              }
+            }
+          }
+        }
+
+  // mark the entire star-block as found/highlight (so users can see it), but don't double-mark items
+  ranges.push({ start: lineStartOffset + startPos, end: lineStartOffset + endPos, className: 'found' });
+  // advance idx past any tokens that end before endPos
+  while (idx < tokens.length && tokens[idx].end <= endPos) idx++;
+  idx--; // loop will idx++
+        continue;
+      }
+
+      // Connectors
+      const tl = token.text.toLowerCase();
+      if (tl === "and" || token.text === "&" || token.text === "," || 
+          token.text === "/" || token.text === "|" || token.text === "+") {
+        ranges.push({
+          start: lineStartOffset + token.start,
+          end: lineStartOffset + token.end,
+          className: 'connector'
+        });
+        seenItemOrMultOrConn = true;
+        continue;
+      }
+
+      // Numbers/multipliers
+      if (token.type === 'number' || /^x\d+$/i.test(token.text) || 
+          wordToNumber[tl]) {
+        
+        let numVal;
+        if (/^\d+$/.test(token.text)) numVal = parseInt(token.text, 10);
+        else if (/^x\d+$/i.test(token.text)) numVal = parseInt(token.text.slice(1), 10);
+        else numVal = wordToNumber[tl];
+
+        // Check if next token is an item
+        let nextItemIdx = idx + 1;
+        while (nextItemIdx < tokens.length && tokens[nextItemIdx].type === 'whitespace') {
+          nextItemIdx++;
+        }
+        const nextIsItem = nextItemIdx < tokens.length && 
+                          !!matchItemAt(tokens, nextItemIdx);
+
+        // NEW: Row multiplier logic - if no item/mult/conn seen yet and next token isn't an item
+        if (!seenItemOrMultOrConn && !nextIsItem) {
+          rowMultiplier = numVal;
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'multiplier'
+          });
+        } else {
+          // Regular quantity multiplier
+          pendingQuantity = numVal;
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'multiplier'
+          });
+        }
+
+        seenItemOrMultOrConn = true;
+        continue;
+      }
+
+      // Words - try to match items
+      if (token.type === 'word') {
+        const match = matchItemAt(tokens, idx);
+        
+        if (match) {
+          const shouldReject = outsideRejectSet.has(idx);
+          
+          if (shouldReject) {
+            ranges.push({
+              start: lineStartOffset + match.start,
+              end: lineStartOffset + match.end,
+              className: 'rejected'
+            });
+          } else {
+            const qty = (pendingQuantity !== null ? pendingQuantity : 1) * rowMultiplier;
+            pendingQuantity = null;
+            
+            if (!counts[match.gr.base]) counts[match.gr.base] = { adult: 0, kid: 0 };
+            if (lineContext === "kid") counts[match.gr.base].kid += qty;
+            else counts[match.gr.base].adult += qty;
+            
+            ranges.push({
+              start: lineStartOffset + match.start,
+              end: lineStartOffset + match.end,
+              className: 'found'
+            });
+          }
+          
+          seenItemOrMultOrConn = true;
+          idx = match.endIdx; // Skip to end of matched item
+          continue;
+        }
+
+        // Context words
+        if (/^(kid|kids|child|children)$/i.test(token.text)) {
+          // If a number or '#'+number immediately follows the context word, include it in the highlight
+          let j = idx + 1;
+          while (j < tokens.length && tokens[j].type === 'whitespace') j++;
+          if (j < tokens.length) {
+            // Handle '#'<number>
+            if (tokens[j].type === 'punctuation' && tokens[j].text === '#' && j + 1 < tokens.length && tokens[j+1].type === 'number') {
+              let nameEnd = tokens[j+1].end;
+              if (j + 2 < tokens.length && tokens[j+2].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j+2].text)) nameEnd = tokens[j+2].end;
+              ranges.push({ start: lineStartOffset + token.start, end: lineStartOffset + nameEnd, className: 'kidCtx' });
+              while (idx < tokens.length && tokens[idx].end < nameEnd) idx++;
+              continue;
+            }
+            // Handle direct number
+            if (tokens[j].type === 'number') {
+              let nameEnd = tokens[j].end;
+              if (j + 1 < tokens.length && tokens[j+1].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j+1].text)) nameEnd = tokens[j+1].end;
+              ranges.push({ start: lineStartOffset + token.start, end: lineStartOffset + nameEnd, className: 'kidCtx' });
+              while (idx < tokens.length && tokens[idx].end < nameEnd) idx++;
+              continue;
+            }
+          }
+
+          // Fallback: just highlight the word itself
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'kidCtx'
+          });
+          // If there's no item on this line, we already set persistent above; if there is an item we only applied kid to this line's context variable.
+          continue;
+        }
+        
+        if (/^adult(s)?$/i.test(token.text)) {
+          // If a number or '#'+number immediately follows "Adult", include it in the highlight
+          let j = idx + 1;
+          while (j < tokens.length && tokens[j].type === 'whitespace') j++;
+          if (j < tokens.length) {
+            if (tokens[j].type === 'punctuation' && tokens[j].text === '#' && j + 1 < tokens.length && tokens[j+1].type === 'number') {
+              let nameEnd = tokens[j+1].end;
+              if (j + 2 < tokens.length && tokens[j+2].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j+2].text)) nameEnd = tokens[j+2].end;
+              ranges.push({ start: lineStartOffset + token.start, end: lineStartOffset + nameEnd, className: 'adultCtx' });
+              // set global context to adult as before
+              window._persistentKidMode = false;
+              window._currentContext = "adult";
+              while (idx < tokens.length && tokens[idx].end < nameEnd) idx++;
+              continue;
+            }
+            if (tokens[j].type === 'number') {
+              let nameEnd = tokens[j].end;
+              if (j + 1 < tokens.length && tokens[j+1].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j+1].text)) nameEnd = tokens[j+1].end;
+              ranges.push({ start: lineStartOffset + token.start, end: lineStartOffset + nameEnd, className: 'adultCtx' });
+              window._persistentKidMode = false;
+              window._currentContext = "adult";
+              while (idx < tokens.length && tokens[idx].end < nameEnd) idx++;
+              continue;
+            }
+          }
+
+          ranges.push({
+            start: lineStartOffset + token.start,
+            end: lineStartOffset + token.end,
+            className: 'adultCtx'
+          });
+          window._persistentKidMode = false;
+          window._currentContext = "adult";
+          continue;
+        }
+
+        // Try compound word matching (like "chickensteak")
+        const tokenLower = token.text.toLowerCase();
+        const memoSeq = new Map();
+        
+        function bestSeqAt(pos) {
+          if (pos >= token.text.length) return { seq: [], chars: 0 };
+          if (memoSeq.has(pos)) return memoSeq.get(pos);
+
+          let best = { seq: [], chars: 0 };
+          for (let item of itemsList) {
+            const L = item.length;
+            if (pos + L <= token.text.length && 
+                tokenLower.startsWith(item, pos)) {
+              const rest = bestSeqAt(pos + L);
+              const candSeq = [item].concat(rest.seq);
+              const candChars = L + rest.chars;
+              if (candSeq.length > best.seq.length || 
+                  (candSeq.length === best.seq.length && candChars > best.chars)) {
+                best = { seq: candSeq, chars: candChars };
+              }
+            }
+          }
+          memoSeq.set(pos, best);
+          return best;
+        }
+
+        const bestWhole = bestSeqAt(0);
+        if (bestWhole.seq.length > 0) {
+          let posInToken = 0;
+          for (let matchedItem of bestWhole.seq) {
+            const L = matchedItem.length;
+            const subStart = lineStartOffset + token.start + posInToken;
+            const subEnd = subStart + L;
+
+            ranges.push({
+              start: subStart,
+              end: subEnd,
+              className: 'found'
+            });
+
+            // Find matching group and update counts
+            let matchedGr = null;
+            for (let gr of itemGroups) {
+              if (fuzzyCompare(matchedItem, gr.baseLower) ||
+                  fuzzyCompare(matchedItem, gr.plural) ||
+                  gr.aliases.some(a => fuzzyCompare(matchedItem, a))) {
+                matchedGr = gr;
+                break;
+              }
+            }
+
+            if (matchedGr) {
+              const qty = (pendingQuantity !== null ? pendingQuantity : 1) * rowMultiplier;
+              pendingQuantity = null;
+              if (!counts[matchedGr.base]) counts[matchedGr.base] = { adult: 0, kid: 0 };
+              if (lineContext === "kid") counts[matchedGr.base].kid += qty;
+              else counts[matchedGr.base].adult += qty;
+            }
+            posInToken += L;
+          }
+          seenItemOrMultOrConn = true;
+          continue;
+        }
+
+        // Name detection logic
+        if (!seenItemOrMultOrConn) {
+          let nameEnd = token.end;
+          let foundPunctuation = false;
+          let localContext = null;
+          
+          // Check if this token is a context word (Adult/Kid/Child)
+          const tokenLower = token.text.toLowerCase();
+          if (/^(adult|kid|child)$/i.test(tokenLower)) {
+            localContext = /^adult$/i.test(tokenLower) ? "adult" : "kid";
+          }
+          
+          // Look for punctuation, number, or '#' + number after this word (and any following words)
+          for (let j = idx + 1; j < Math.min(idx + 8, tokens.length); j++) {
+            if (tokens[j].type === 'whitespace') continue;
+            // If we encounter a word, extend the name and also check if it's a context word (e.g., "Adult 5")
+            if (tokens[j].type === 'word') {
+              if (!localContext && /^(adult|kid|child)$/i.test(tokens[j].text.toLowerCase())) {
+                localContext = /^adult$/i.test(tokens[j].text.toLowerCase()) ? "a dult" : "kid";
+              }
+              nameEnd = tokens[j].end;
+              continue;
+            }
+
+            // Handle '#' + number sequence (e.g. "Guest #2" or "Adult #2") - include the number
+            if (tokens[j].type === 'punctuation' && tokens[j].text === '#') {
+              if (j + 1 < Math.min(idx + 8, tokens.length) && tokens[j+1].type === 'number') {
+                nameEnd = tokens[j+1].end;
+                // include optional punctuation after the number (like ':')
+                if (j + 2 < Math.min(idx + 8, tokens.length) && tokens[j+2].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j+2].text)) {
+                  nameEnd = tokens[j+2].end;
+                }
+                foundPunctuation = true;
+                break;
+              }
+            }
+
+            // Handle direct number after the name (e.g. "Guest 2" or "Adult 2:") - include the number
+            if (tokens[j].type === 'number') {
+              nameEnd = tokens[j].end;
+              // include optional punctuation after the number (like ':')
+              if (j + 1 < Math.min(idx + 8, tokens.length) && tokens[j+1].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j+1].text)) {
+                nameEnd = tokens[j+1].end;
+              }
+              foundPunctuation = true;
+              break;
+            }
+
+            // Accept punctuation like . : , ; as name terminator
+            if (tokens[j].type === 'punctuation' && /^[\.\:\,;]+$/.test(tokens[j].text)) {
+              nameEnd = tokens[j].end;
+              foundPunctuation = true;
+              break;
+            }
+
+            break;
+          }
+          
+          if (foundPunctuation) {
+            const isInitial = /^[A-Za-z]$/.test(token.text) && 
+                             nameEnd - token.end === 1;
+            if (!isInitial) {
+              // Use local context if one was found, otherwise use line context
+              const cls = localContext ? 
+                (localContext === "kid" ? "kidCtx" : "adultCtx") :
+                (lineContext === "kid" ? "kidCtx" : "adultCtx");
+              
+              ranges.push({
+                start: lineStartOffset + token.start,
+                end: lineStartOffset + nameEnd,
+                className: cls
+              });
+              
+              // Skip to after the punctuation
+              while (idx < tokens.length && tokens[idx].end < nameEnd) idx++;
+              continue;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // === Build final highlighted HTML ===
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Sort and merge overlapping ranges
+  ranges.sort((a, b) => a.start - b.start || a.end - b.end);
+  const merged = [];
+  
+  for (const r of ranges) {
+    if (r.start >= r.end || r.start < 0 || r.end > originalText.length) continue;
+    
+    const last = merged[merged.length - 1];
+    if (!last || r.start >= last.end) {
+      merged.push(r);
+    }
+    // Skip overlapping ranges (keep the first one)
+  }
+
+  // Build HTML
+  let out = "";
+  let cursor = 0;
+  for (const r of merged) {
+    out += escapeHtml(originalText.slice(cursor, r.start));
+    out += `<span class="${r.className}">${escapeHtml(originalText.slice(r.start, r.end))}</span>`;
+    cursor = r.end;
+  }
+  out += escapeHtml(originalText.slice(cursor));
+  
+  foodlist.innerHTML = out;
+  foodlist.style.whiteSpace = "pre-wrap";
+
+  // === Save counts and render results table ===
+  localStorage.setItem('itemCounts', JSON.stringify(counts));
+
+  const initMessage = document.getElementById('initMessage');
+  const resultsContainer = document.getElementById('resultsContainer');
+  resultsContainer.innerHTML = '';
+  
+  if (Object.keys(counts).length === 0) {
+    if (initMessage) initMessage.style.display = 'block';
+    return;
+  }
+  if (initMessage) initMessage.style.display = 'none';
+
+  const table = document.createElement('table');
+  table.border = 1;
+  table.innerHTML = `<thead><tr><th>Item</th><th>Adults</th><th>Kids</th><th>Total</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  
+  let totalAdults = 0;
+  let totalKids = 0;
+  let grandTotal = 0;
+
+  for (let [baseName, { adult = 0, kid = 0 }] of Object.entries(counts)) {
+    const total = (adult || 0) + (kid || 0);
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${baseName}</td><td>${adult}</td><td>${kid}</td><td>${total}</td>`;
+    tbody.appendChild(row);
+
+    // Add to running totals
+    totalAdults += adult;
+    totalKids += kid;
+    grandTotal += total;
+  }
+
+  // Create and append the totals row
+  const totalsRow = document.createElement('tr');
+  totalsRow.innerHTML = `<td>Total:</td><td>${totalAdults}</td><td>${totalKids}</td><td>${grandTotal}</td>`;
+  tbody.appendChild(totalsRow);
+  
+  table.appendChild(tbody);
+  resultsContainer.appendChild(table);
+}
+
+</script>
+  </div>
+</Layout>

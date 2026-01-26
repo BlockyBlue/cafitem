@@ -1,0 +1,155 @@
+---
+import Layout from '../../layouts/AppLayout.astro';
+---
+
+<Layout>
+  <div slot="body">
+      <main>
+      <a href="calculator">
+        <div class="product-box">
+          <div class="product-name">Invoice Creator</div>
+          <div class="product-info">Create invoices quickly and easily!</div>
+          <span class="material-symbols-outlined product-logo">receipt</span>
+        </div>
+      </a>
+      <a href="tracker">
+        <div class="product-box">
+          <div class="product-name">Invoice Tracker</div>
+          <div class="product-info">NEW: Manage your invoices all in one place!</div>
+          <span class="material-symbols-outlined product-logo">document_search</span>
+        </div>
+      </a>
+      <a href="finder">
+        <div class="product-box">
+          <div class="product-name">Item Finder</div>
+          <div class="product-info">Parse & Preview: Your Smart Inventory Tool!</div>
+          <span class="material-symbols-outlined product-logo">search</span>
+        </div>
+      </a>
+        <form id="contactForm">
+          <input class="name-email" id="name" placeholder="Name">
+          <input class="name-email" id="email" placeholder="Email">
+          <textarea class="comment" id="comment" placeholder="Message"></textarea>
+          <button class="form" id="submit">Submit</button>
+          <div id="message-box"></div>
+        </form>
+  </main>
+  <script>
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDIF22zN6b-YjCilsumv7VrwO3NiUeeCM4",
+  authDomain: "cafitem-8de92.firebaseapp.com",
+  projectId: "cafitem-8de92",
+  storageBucket: "cafitem-8de92.firebasestorage.app",
+  messagingSenderId: "100147713764",
+  appId: "1:100147713764:web:b41169600b7c121d04bef1",
+  measurementId: "G-9D859PV60C"
+};
+
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+let db;
+let auth;
+let userId = null;
+let isAuthReady = false;
+
+const messageBox = document.getElementById('messageBox');
+
+    function showMessage(message, type) {
+      const messageBox = document.getElementById('message-box');
+      messageBox.textContent = message;
+      messageBox.className = type;
+      messageBox.style.display = 'block';
+    }
+
+// Asynchronous function to initialize Firebase and set up auth listener
+async function initFirebase() {
+    try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+                isAuthReady = true;
+                console.log('Authentication successful. User ID:', userId);
+
+                // Since this is home.html, buttons might not exist, but let's log the attempt
+                // to show that the code logic works.
+                console.log("User is authenticated, buttons would be enabled here if they existed on this page.");
+
+            } else {
+                // User is signed out. Sign in with the provided token or anonymously.
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error('Authentication error:', error);
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Firebase initialization failed:", error);
+    }
+}
+
+// Wait for the DOM to be fully loaded before attaching event listeners
+document.addEventListener('DOMContentLoaded', async () => {
+    await initFirebase();
+
+    const contactForm = document.getElementById('contactForm');
+    contactForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!isAuthReady) {
+            showMessage("Database not ready. Please try again.", "error");
+            return;
+        }
+
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const commentInput = document.getElementById('comment');
+        
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        const comment = commentInput.value.trim();
+
+        if (!name || !email || !comment) {
+            showMessage("Please fill out all fields.", "error");
+            return;
+        }
+
+        try {
+            const formCollectionRef = collection(db, 'form');
+            await addDoc(formCollectionRef, {
+                name: name,
+                email: email,
+                comment: comment,
+                createdAt: new Date(),
+                userId: userId // Storing the user's ID with the form data
+            });
+            
+            showMessage("Message sent successfully!", "success");
+            nameInput.value = '';
+            emailInput.value = '';
+            commentInput.value = '';
+        } catch (error) {
+            console.error("Error adding document to Firestore:", error);
+            showMessage("Error submitting form. Please try again.", "error");
+        }
+    });
+});
+</script>
+  </div>
+</Layout>

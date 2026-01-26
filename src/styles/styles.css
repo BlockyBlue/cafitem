@@ -1,0 +1,628 @@
+@import url(https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined);
+@import url(https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;900&display=swap);
+
+:root {
+  /* :global - core palette and tokens */
+  --global-font-family: "Raleway", sans-serif;
+  --global-primary-color: #026AA7;
+  --global-secondary-color: #034FAB;
+  --global-accent-color: #0090E4;
+  --global-background-color: #D0E8FF;
+  --global-text-color: #012A4A;
+  --global-highlight-color: #B0D4FE;
+  --global-warning-color: #ffd900;
+  --global-error-color: #f44336;
+  --global-success-color: #4CAF50;
+  --global-info-color: #00bfff;
+
+  /* Additional global palette */
+  --global-white: #ffffff;
+  --global-black: #000000;
+  --global-transparent: transparent;
+  --global-aside-bg: #a9d4fc;
+  --global-product-bg: #77BFFE;
+  --global-numbering-bg: #ffa500;
+  --global-adult-ctx: #007bff;
+  --global-kid-ctx: #28a745;
+  --global-connector-bg: #c5ff52;
+  --global-multiplier-bg: #CC6CE7;
+  --global-rejected-bg: #ff0000;
+  --global-td-bg: #D7E8FF;
+  --global-td-edit-bg: #E8F4FF;
+  --global-td-item-bg: #EFF8FF;
+  --global-nav-bg: #024268;
+  --global-menu-border: #00579a;
+  --global-menu-hover: #9ac9ff;
+  --global-copy-bg: #84D6FF;
+  --global-copy-border: #01608F;
+  --global-remove-bg: #FEA7A7;
+  --global-remove-border: #8C0101;
+  --global-add-bg: #87FD97;
+  --global-add-border: #018C13;
+  --global-form-bg: #9fdfff;
+  --global-form-border: #00aaff;
+  --global-success-bg: #d4edda;
+  --global-success-text: #155724;
+  --global-error-bg: #f8d7da;
+  --global-error-text: #721c24;
+  --global-popup-bg: #f0f8ff;
+  --global-ad-popup-bg: #4a98ff;
+  --global-overlay: rgba(0,0,0,0.6);
+  --global-items-bg: #add7ff;
+
+  /* :home - page-specific aliases (default to global tokens) */
+  --home-primary-color: var(--global-primary-color);
+  --home-secondary-color: var(--global-secondary-color);
+  --home-accent-color: var(--global-accent-color);
+  --home-background-color: var(--global-background-color);
+  --home-text-color: var(--global-text-color);
+  --home-aside-bg: var(--global-aside-bg);
+  --home-product-bg: var(--global-product-bg);
+  --home-nav-bg: var(--global-nav-bg);
+  --home-popup-bg: var(--global-popup-bg);
+  --home-ad-popup-bg: var(--global-ad-popup-bg);
+
+  /* :calculator */
+  --calculator-primary-color: var(--global-primary-color);
+  --calculator-background-color: var(--global-background-color);
+  --calculator-form-bg: var(--global-form-bg);
+
+  /* :tracker */
+  --tracker-primary-color: var(--global-primary-color);
+  --tracker-nav-bg: var(--global-nav-bg);
+
+  /* :finder */
+  --finder-primary-color: var(--global-primary-color);
+  --finder-items-bg: var(--global-items-bg);
+  --finder-warning-color: var(--global-warning-color);
+
+  /* Backwards-compatible aliases (used throughout stylesheet) */
+  --font-family: var(--global-font-family);
+  --primary-color: #026AA7;
+  --secondary-color: var(--global-secondary-color);
+  --accent-color: #0090E4;
+  --background-color: #D0E8FF;
+  --text-color: var(--global-text-color);
+  --highlight-color: var(--global-highlight-color);
+  --warning-color: #ffd900;
+  --error-color: #f44336;
+  --success-color: #4CAF50;
+  --info-color: var(--global-info-color);
+
+  --white: var(--global-white);
+  --black: var(--global-black);
+  --transparent: transparent;
+  --aside-bg: #a9d4fc;
+  --product-bg: #77BFFE;
+  --numbering-bg: #ffa500;
+  --adult-ctx: #007bff;
+  --kid-ctx: #28a745;
+  --connector-bg: #c5ff52;
+  --multiplier-bg: #CC6CE7;
+  --rejected-bg: #ff0000;
+  --td-bg: #D7E8FF;
+  --td-edit-bg: var(--global-td-edit-bg);
+  --td-item-bg: #EFF8FF;
+  --nav-bg: #024268;
+  --menu-border: #00579a;
+  --menu-hover: #9ac9ff;
+  --copy-bg: #84D6FF;
+  --copy-border: #01608F;
+  --remove-bg: #FEA7A7;
+  --remove-border: #8C0101;
+  --add-bg: #87FD97;
+  --add-border: #018C13;
+  --form-bg: var(--global-form-bg);
+  --form-border: var(--global-form-border);
+  --success-bg: var(--global-success-bg);
+  --success-text: var(--global-success-text);
+  --error-bg: var(--global-error-bg);
+  --error-text: var(--global-error-text);
+  --popup-bg: var(--global-popup-bg);
+  --ad-popup-bg: var(--global-ad-popup-bg);
+  --overlay: var(--global-overlay);
+  --items-bg: var(--global-items-bg);
+}
+
+body {
+  background-color: var(--background-color);
+  font-family:"Raleway", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+main {
+  padding: 10px;
+}
+header {
+  background-color: var(--primary-color);
+  padding:15px 0;
+  box-shadow:0 4px 8px rgba(0,0,0,0.15);
+  margin-bottom:0px;
+}
+a {
+  text-decoration: none;
+}
+aside {
+  width: 40%;
+  float: right;
+  margin: 20px;
+  text-align: center;
+  background-color: var(--aside-bg);
+  border-radius: 10px;
+  padding: 20px;
+}
+button, select {
+  cursor: pointer;
+}
+.input_box {
+  background-color: var(--white);
+  border:2px solid var(--secondary-color);
+  border-radius:5px;
+  width:95%;
+  padding:10px;
+  margin:0 auto;
+  overflow:auto;
+  white-space:pre-wrap;
+  direction:ltr;
+  unicode-bidi:isolate-override;
+}
+.input_box:focus {
+  outline:2px solid var(--secondary-color);
+}
+.found {
+  background-color: var(--warning-color);
+  border-radius:3px;
+  color:var(--black);
+}
+.product-box {
+  background-color: var(--product-bg);
+  color: var(--black);
+  border-radius: 3px;
+  height: auto;
+  padding: 10px;
+  margin: 10px;
+  width: 95%;
+  flex: 1;
+  display: grid;
+  grid-template-areas:
+    "name logo"
+    "info logo";
+  grid-template-columns: 1fr auto;
+}
+.product-name { grid-area: name; font-size: 60px; font-weight:900; }
+.product-info { grid-area: info; font-size: 30px; font-weight:600; }
+.product-logo { grid-area: logo; font-size: 200px; color: #fff; }
+.numbering {
+  background-color: var(--numbering-bg);
+  border-radius:3px;
+  color:var(--black);
+}
+.adultCtx {
+  background-color:var(--adult-ctx);
+  border-radius:3px;
+  color:var(--black);
+}
+.kidCtx {
+  background-color:var(--kid-ctx);
+  border-radius:3px;
+  color:var(--black);
+}
+.connector {
+  background-color:var(--connector-bg);
+  border-radius:3px;
+  color:var(--black);
+}
+.multiplier {
+  background-color:var(--multiplier-bg);
+  border-radius:3px;
+  color:var(--black);
+}
+.rejected {
+  background-color:var(--rejected-bg);
+  color:var(--black);
+  border-radius:3px;
+}
+.legend {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:var(--secondary-color);
+  padding:8px;
+  border-radius:5px;
+  width:95%;
+  margin:10px auto;
+}
+.legend-item {
+  display:flex;
+  flex-wrap: wrap;
+  align-items:center;
+  text-align:center;
+  color:var(--white);
+  font-size:.9rem;
+  font-weight:600;
+}
+.legend-item + .legend-item {
+  border-left:1px solid var(--white);
+  margin-left:16px;
+  padding-left:16px;
+}
+.legend-item .label {
+  margin-left:6px;
+}
+table {
+  border-collapse:collapse;
+  width:95%;
+  max-width:600px;
+  margin:10px auto 20px;
+  border:1px solid var(--secondary-color);
+}
+th,td {
+  border:1px solid var(--secondary-color);
+  padding:12px 8px;
+  text-align:center;
+}
+th {
+  background:var(--highlight-color);
+  font-weight:600;
+  color:var(--text-color);
+}
+td {
+  background:var(--td-bg);
+  color:var(--text-color);
+}
+td[contenteditable] {
+  background:var(--td-edit-bg);
+  min-width:50px;
+}
+td.item-column {
+  background:var(--td-item-bg);
+  font-weight:400;
+}
+tr:last-child td {
+  background:var(--td-edit-bg);
+}
+header h1 {
+  color:var(--white);
+  text-align:center;
+  font-weight:600;
+  letter-spacing:2px;
+  text-shadow:1px 1px 3px rgba(0,0,0,.3);
+  margin:0;
+}
+    .input-wrapper {
+      position: relative;
+      width: 95%;
+      margin: 0 auto;
+      min-height: 60px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+    .input-wrapper .input_box {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: transparent;
+      color: transparent;
+      caret-color: black;
+      z-index: 2;
+      resize: none;
+      line-height: 1.4;
+      font-size: 16px;
+      font-family: 'Raleway', sans-serif;
+      overflow: hidden;
+    }
+    .input-wrapper #foodlist {
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      font-size: 16px;
+      width: 100%;
+    }
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--nav-bg);
+}
+.sign-out {
+  float: right;
+}
+
+.sign-out-button {
+  background-color: var(--transparent);
+  border: 0px solid var(--black);
+  color: var(--white);
+  font-size: 16px;
+  font-family:"Raleway", sans-serif;
+  text-align: center;
+}
+.menu-button {
+  display: inline-flex;
+  align-items:center;
+  vertical-align: middle;
+  background-color:var(--highlight-color);
+  font-weight:600;
+  font-family:"Raleway", sans-serif;
+  padding: 0 15px;
+  text-align: center;
+  height: 40px;
+  color:var(--black);
+  border: 2px solid var(--menu-border);
+  border-radius: 3px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transition: 0.3s;
+}
+input.menu-button {
+  height: 30px;
+}
+.menu-button:hover {
+  background-color:var(--menu-hover);
+}
+.menu-button-label {
+  vertical-align: baseline;
+}
+li {
+  float: left;
+}
+
+li a {
+  display: block;
+  color: var(--white);
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+li a:hover:not(.active) {
+  background-color: var(--black);
+}
+
+.active {
+  background-color: var(--accent-color);
+}
+nav {
+  margin-bottom: 20px;
+  padding: 0;
+}
+.info-box, .quantity-input, .item-price-input {
+  background-color:var(--white);
+  border:2px solid var(--secondary-color);
+  border-radius:5px;
+  vertical-align: middle;
+  height:25px;
+  padding:3px;
+  margin:5px;
+  font-size: 16px;
+  font-family:"Raleway", sans-serif; 
+}
+textarea.info-box {
+  height: 40px; /* or match input height */
+  width: 100%;
+  resize: vertical; /* optional: lets users expand */
+}
+
+.info-box { width:200px; }
+.quantity-input, .item-price-input { width: 40px; }
+
+.add-item, .remove-item, .remove-all-item, .copy-button {
+  border-radius:5px;
+  height:30px;
+  width:80px;
+  padding:3px;
+  margin:5px;
+  font-size: 16px;
+  font-family:"Raleway", sans-serif; 
+}
+.copy-button { background-color: var(--copy-bg); border: 2px solid var(--copy-border); }
+.remove-item, .remove-all-item { background-color: var(--remove-bg); border: 2px solid var(--remove-border); }
+.add-item { background-color: var(--add-bg); border: 2px solid var(--add-border); }
+#invoice-output {
+  font-family: Arial, sans-serif;
+}
+hr {
+  border: 1px solid #000000;
+}
+
+.warning {
+  background-color: #ffd900;
+  border: 2px solid #000000;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  height: auto; /* Use auto height for responsive content */
+  width: 95%; /* Match other elements */
+  padding: 15px; /* More padding for better spacing */
+  margin: 5px auto 20px; /* Center horizontally and add bottom margin */
+  font-size: 20px;
+  font-family: "Raleway", sans-serif;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  color: #000;
+}
+.warning span {
+  font-size: 80px;
+  margin-right: 15px;
+}
+.form {
+  font-size: 20px;
+  background-color: #84D6FF; 
+  border: 2px solid #01608F;
+  border-radius: 3px;
+  width: 230px;
+  height: 40px;
+  font-family: "Raleway", sans-serif;
+}
+    .name-email, .comment {
+      background-color:#FFFFFF;
+      border:2px solid #034FAB;
+      border-radius:5px;
+      padding:5px;
+      margin:10px;
+      overflow:auto;
+      white-space:pre-wrap;
+      direction:ltr;
+      unicode-bidi:isolate-override;
+      font-family: "Raleway", sans-serif;
+      font-size: 14px;
+      display: block;
+    }
+    .name-email {width:300px; height:20px;}
+    .comment {width:400px; min-height:80px;}
+    form {
+      background-color: #9fdfff; 
+      border: 2px solid #00aaff;
+      border-radius: 3px;
+      width: 50%;
+      height: auto;
+      padding: 10px;
+      font-family: "Raleway", sans-serif;
+    }
+    #message-box {
+      width: 95%;
+      margin: 10px auto;
+      padding: 10px;
+      border-radius: 5px;
+      font-weight: bold;
+      display: none; /* Initially hidden */
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Message box for unauthorized access */
+    .message-box {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Raleway', sans-serif;
+      font-size: 24px;
+      text-align: center;
+      color: white;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    .message-box.error {
+  background-color: var(--error-color);
+    }
+    .message-box.success {
+  background-color: var(--success-color);
+    }
+          /* Popup styling */
+      .popup-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none; /* Initially hidden */
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      }
+      .popup-content {
+  background-color: var(--popup-bg); /* Light blue background */
+  padding: 20px;
+  border: 2px solid var(--info-color); /* Blue border */
+      border-radius: 10px;
+      width: 90%;
+      max-width: 1200px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      position: relative;
+      }
+      .popup-content h2, .popup-content .edit-buttons {
+      grid-column: 1 / -1; /* Make these elements span all columns in the grid */
+      }
+      .material-symbols-outlined {
+      cursor: pointer;
+      }
+.ad-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 3px solid var(--white);
+  border-radius: 5px;
+  background-color: var(--ad-popup-bg);
+  padding: 30px;
+  z-index: 9999;
+}
+.ad-background {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  background-color: var(--overlay);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+.popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  background-color: var(--overlay);
+    display: none; /* Initially hidden */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    }
+.popup-content {
+    background-color: var(--popup-bg); /* Light blue background */
+    padding: 20px;
+    border: 2px solid var(--info-color); /* Blue border */
+    border-radius: 10px;
+    width: 90%;
+    max-width: 1200px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+.info-area {
+  float: left;
+  width: 50%;
+  padding: 20px;
+}
+.items-container {
+  background-color: var(--items-bg);
+  border-radius: 5px;
+}
+.scrollableTable {
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.back-button {
+  border-radius:5px;
+  height:30px;
+  width:80px;
+  padding:3px;
+  margin:5px;
+  font-size: 16px;
+  font-family:"Raleway", sans-serif; 
+  transition: background-color 0.3s ease;
+  background-color: #E55C5C;
+  color: #000;
+  border: 2px solid #710c0c;
+}
+
+.back-button:hover {
+  background-color: #B71C1C;
+  color: #FFFFFF;
+}
