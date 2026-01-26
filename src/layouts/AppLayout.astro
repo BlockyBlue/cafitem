@@ -1,5 +1,5 @@
 ---
-import Styles from '../styles/styles.css'
+import '../styles/styles.css'
 import Favicon from '/favicon.ico'
 const { headerName = "CaFitem ", headerVersion = "Basic" } = Astro.props;
 ---
@@ -11,7 +11,6 @@ const { headerName = "CaFitem ", headerVersion = "Basic" } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CaFitem</title>
     <link rel="icon" type="image/x-icon" href={Favicon}>
-    <link rel="stylesheet" href={Styles}>
     <slot name="style" />
     <slot name="headScript" />
   </head>
