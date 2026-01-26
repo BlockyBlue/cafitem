@@ -59,5 +59,18 @@ navLinks.forEach(link => {
     });
        </script>
   <slot name="body" />
+  
+      <script is:inline>
+        // Register service worker for PWA install criteria. This does not change UI.
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then(() => {
+              console.log('Service worker registered.');
+            }).catch((err) => {
+              console.warn('Service worker registration failed:', err);
+            });
+          });
+        }
+      </script>
   </body>
 </html>
