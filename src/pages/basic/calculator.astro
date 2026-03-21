@@ -1,0 +1,905 @@
+---
+import Layout from '../../layouts/AppLayout.astro';
+---
+
+<Layout headerName="Invoice Creator " headerVersion="v1.8.3">
+  <div slot="body">
+      <!-- Autofill Popup -->
+    <div id="autofillPopup" class="popup-container">
+      <div class="popup-content">
+          <h2>Autofill Items</h2>
+           <button class="add-item" id="add-autofill-item" onclick="addItem()">Add Item</button>
+           <button class="add-item" id="restore-autofill-item" onclick="restoreFallback()" style="width: 150px;">Restore Items</button>
+           <div class="scrollableTable">
+              <table id="autofillTable">
+                 <thead>
+                 <tr>
+                  <th>Item</th>
+                  <th>Automatic Price</th>
+                  <th>Actions</th>
+                 </tr>
+              </thead>
+            <tbody id="autofillTableBody"></tbody>
+          </table>
+        </div>
+        <button class="remove-item" onclick="hideAutofill()">Close</button>
+      </div>
+    </div>
+
+  <!-- Modify Invoice Popup -->
+    <div id="modifyPopup" class="popup-container">
+      <div class="popup-content">
+          <h2>Modify Invoice:</h2>
+          <label>Header:</label>
+          <textarea id="invoiceHeader" class="info-box" rows="2" placeholder="Header"></textarea>
+          <label>Footer:</label>
+          <textarea id="invoiceFooter" class="info-box" rows="2" placeholder="Footer"></textarea>
+        <button class="remove-item" onclick="hideModify()">Close</button>
+      </div>
+    </div>
+
+  <main class="info-area">
+    <div>
+      <button class="remove-all-item" id="clearAll" onclick="clearAll()">Clear All</button>
+    </div>
+    <div>
+      <input id="date"     type="text"   class="info-box" placeholder="Date" />
+      <input id="location" type="text"   class="info-box" placeholder="Location" />
+      <input id="travel"   type="number" class="info-box" placeholder="Travel Fee ($)"   min="0" step="0.01" />
+      <input id="deposit"  type="number" class="info-box" placeholder="Deposit Paid ($)" min="0" step="0.01" />
+      <input id="discount"  type="number" class="info-box" placeholder="Discount ($)" min="0" step="0.01" />
+      <input id="tax"  type="number" class="info-box" placeholder="Tax (%)" min="0" step="0.01" />
+      <textarea id="notes" class="info-box" rows="2" placeholder="Notes"></textarea>
+    </div>
+
+    <hr>
+
+    <section>
+      <div style="display: inline-block;">
+      <h2>People</h2>
+      <div>
+        <input id="adultQty" class="quantity-input info-box" placeholder="Qty.">
+        <input id="adultBox" class="info-box" value="Adults">
+        <input id="adultPrice" class="quantity-input info-box" value="50">
+      </div>
+      <div>
+        <input id="kidQty" class="quantity-input info-box" placeholder="Qty.">
+        <input id="kidBox" class="info-box" value="Kids">
+        <input id="kidPrice" class="quantity-input info-box" value="30">
+      </div>
+      <div>
+        <input id="deluxeQty" class="quantity-input info-box" placeholder="Qty.">
+        <input id="deluxeBox" class="info-box" value="Deluxe">
+        <input id="deluxePrice" class="quantity-input info-box" value="65">
+      </div>
+      </div>
+      <div style="display: inline-block; padding-left: 40px;">
+      <h2>Extras</h2>
+      <div>
+        <input id="setupFeeBox" class="info-box" value="Setup Fee">
+        <input id="setupFeePrice" class="quantity-input info-box" value="0">
+      </div>
+      <div>
+        <input id="upgradeBox" class="info-box" value="Upgrade">
+        <input id="upgradePrice" class="quantity-input info-box" value="0">
+      </div>
+      <div>
+        <input id="sideorderBox" class="info-box" value="Side Order">
+        <input id="sideorderPrice" class="quantity-input info-box" value="0">
+      </div>
+      <div>
+        <input id="appetizerBox" class="info-box" value="Appetizer">
+        <input id="appetizerPrice" class="quantity-input info-box" value="0">
+      </div>
+      </div>
+    </section>
+
+    <hr>
+
+      <h2>Items</h2>
+      <select class="item-category info-box" id="currentItemInput" onchange="updateItemType()" name="Input Type">
+        <option value="rows" selected>Rows</option>
+        <option value="input">Textbox (Advanced)</option>
+      </select>
+      <section id="items-section" style="display: block;">
+      <button type="button" class="add-item" id="add-item">Add Item</button>
+      <button type="button" class="add-item" id="loadFromFinder" style="width:200px">Load from Item Finder</button>
+      <button type="button" class="copy-button" onclick="showAutofill()">Autofill</button>
+
+      <h3>Adults</h3>
+      <div id="adults-items" class="items-container"></div>
+
+      <h3>Kids</h3>
+      <div id="kids-items" class="items-container"></div>
+
+      <h3>Deluxe</h3>
+      <div id="deluxe-items" class="items-container"></div>
+    </section>
+    <section id="items-input-variation" style="display: none;">
+      <input id="items-input-price"  type="number" class="info-box" placeholder="Total Price Of Items" min="0" step="0.01" />
+      <textarea id="items-input" class="input_box" style='font-family: "Raleway", sans-serif;' placeholder="Insert Items Here"></textarea>
+    </section>
+
+    <hr>
+  </main>
+
+  <aside>
+    <h2>Invoice:</h2>
+    <div class="action-buttons">
+      <select class="item-category info-box" id="currentOutputDisplay" onchange="updateOutputDisplay()" name="Output Display">
+        <option value="text" selected>Text</option>
+        <option value="HTML">HTML</option>
+      </select>
+      <label style="font-size:14px;">
+      <input type="checkbox" id="showChinese" onchange="generateInvoice()" value="true" checked>Show Chinese
+      </label>
+      <label style="font-size:14px;">
+      <input type="checkbox" id="forChef" onchange="generateInvoice()" value="true" checked>For Chef
+      </label>
+      <br>
+      <button type="button" class="add-item" onclick="showModify()">Modify</button>
+      <button type="button" class="copy-button" onclick="copyInvoice()">Copy</button>
+      <button type="button" class="copy-button" onclick="gmailInvoice()">Gmail</button>
+      <button type="button" class="copy-button" onclick="outlookInvoice()">Outlook</button>
+      <button type="button" class="copy-button" onclick="printInvoice()">Print</button>
+    </div>
+
+    <textarea
+      id="invoice-output"
+      class="input_box"
+      rows="20"
+      style="
+        resize: vertical;
+        display: block;
+        font-size: 14px;
+      "
+      placeholder="There seems to be an error..."
+    ></textarea>
+    <div
+      id="invoice-output-div"
+      class="input_box"
+      style="
+        font-family: Arial, sans-serif;
+        text-align: left;
+        display: none;
+        font-size: 14px;
+      "
+    >There seems to be an error...</div>
+  </aside>
+
+  <script type="text/javascript">
+    let adultsContainer, kidsContainer, deluxeContainer;
+    let lastInvoice = { totalAmount: null };
+    let settingsFields = ['invoiceHeader', 'invoiceFooter']
+
+    function showMessage(message) {
+      const box = document.createElement('div');
+      box.className = 'custom-message-box';
+      box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px;background-color:white;border:1px solid #ccc;box-shadow:0 4px 8px rgba(0,0,0,0.1);z-index:1000;border-radius:8px;text-align:center;font-family:Raleway,sans-serif;';
+      box.innerHTML = '<p>'+message+'</p><button class="add-item" onclick="this.parentNode.remove()">OK</button>';
+      document.body.appendChild(box);
+    }
+
+    function moveRowToCategory(row, category) {
+      if (category === 'kids') deluxe = false, kidsContainer.appendChild(row);
+      else if (category === 'deluxe') deluxeContainer.appendChild(row);
+      else adultsContainer.appendChild(row);
+      generateInvoice();
+    }
+
+    function attachRowListeners(row) {
+      row.querySelector('.item-input')     .addEventListener('input', generateInvoice);
+      row.querySelector('.quantity-input') .addEventListener('input', generateInvoice);
+      row.querySelector('.item-price-input').addEventListener('input', generateInvoice);
+      row.querySelector('.remove-item').addEventListener('click', () => { row.remove(); generateInvoice(); });
+      row.querySelector('.item-input').addEventListener('input', (e) => autoApplyPrice(e.target));
+    }
+
+    function createItemRow() {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <input type="number" class="quantity-input info-box" placeholder="Qty" min="1" step="1" required />
+        <select class="item-category info-box" style="height:37px;" required>
+          <option value="adults" selected>Adults</option>
+          <option value="kids">Kids</option>
+          <option value="deluxe">Deluxe</option>
+        </select>
+        <input type="text" class="item-input info-box" placeholder="Item" required />
+        <input type="number" class="info-box item-price-input" placeholder="$"/>
+        <button type="button" class="remove-item">Remove</button>
+      `;
+      const sel = row.querySelector('.item-category');
+      sel.addEventListener('change', () => moveRowToCategory(row, sel.value));
+      attachRowListeners(row);
+      moveRowToCategory(row, sel.value);
+      return row;
+    }
+
+    document.getElementById('add-item').addEventListener('click', () => { createItemRow(); generateInvoice(); });
+
+    document.getElementById('loadFromFinder').addEventListener('click', () => {
+      const stored = localStorage.getItem('itemCounts');
+      if (!stored) return showMessage('No item data found from Item Finder.');
+      const itemCounts = JSON.parse(stored);
+      adultsContainer.innerHTML = '';
+      kidsContainer.innerHTML   = '';
+      deluxeContainer.innerHTML = '';
+      Object.entries(itemCounts).forEach(([item, counts]) => {
+        if (counts.adult > 0) {
+          const r = createItemRow(); r.querySelector('.item-category').value = 'adults';
+          r.querySelector('.item-input').value = item; r.querySelector('.quantity-input').value = counts.adult;
+          moveRowToCategory(r, 'adults');
+          autoApplyPrice(r.querySelector('.item-input'));
+        }
+        if (counts.kid > 0) {
+          const r = createItemRow(); r.querySelector('.item-category').value = 'kids';
+          r.querySelector('.item-input').value = item; r.querySelector('.quantity-input').value = counts.kid;
+          moveRowToCategory(r, 'kids');
+          autoApplyPrice(r.querySelector('.item-input'));
+        }
+        if (counts.deluxe > 0) {
+          const r = createItemRow(); r.querySelector('.item-category').value = 'deluxe';
+          r.querySelector('.item-input').value = item; r.querySelector('.quantity-input').value = counts.deluxe;
+          moveRowToCategory(r, 'deluxe');
+          autoApplyPrice(r.querySelector('.item-input'));
+        }
+      });
+      generateInvoice();
+    });
+
+    [
+      'date','location','travel','deposit','notes', 'discount', 'tax', 'items-input', 'items-input-price',
+      'adultQty', 'adultBox', 'adultPrice','kidQty', 'kidBox', 'kidPrice','deluxeQty', 'deluxeBox', 'deluxePrice', 'upgradePrice', 'upgradeBox', 'sideorderPrice', 'sideorderBox', 'appetizerPrice', 'appetizerBox','setupFeeBox', 'setupFeePrice'
+
+    ].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', generateInvoice); });
+    [
+      'invoiceHeader','invoiceFooter'
+    ].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', saveInvoiceSettings); });
+  function showAutofill() {
+    document.getElementById('autofillPopup').style.display = 'flex';
+  }
+  function hideAutofill() {
+    document.getElementById('autofillPopup').style.display = 'none';
+  }
+  function saveTable() {
+  const body = document.getElementById("autofillTableBody");
+  const rows = [];
+  for (let i = 0; i < body.rows.length; i++) {
+    const row = body.rows[i];
+    const item = row.querySelector("input[id^='item']").value;
+    const price = row.querySelector("input[id^='price']").value;
+    rows.push({ item, price });
+  }
+  localStorage.setItem("autofillTable", JSON.stringify(rows));
+}
+
+function loadItems() {
+  const body = document.getElementById("autofillTableBody");
+  body.innerHTML = ""; // clear out all old rows
+
+  let localItems = [];
+  try {
+    const raw = localStorage.getItem("autofillTable");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        localItems = parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Bad localStorage value for autofillTable, clearing it.", err);
+    localStorage.removeItem("autofillTable");
+  }
+
+  const restoreBtn = document.getElementById('restore-autofill-item');
+  if (restoreBtn) {
+    restoreBtn.style.display = localItems.length === 0 ? "inline-block" : "none";
+  }
+
+  // Only add rows if we actually have saved items
+  if (localItems.length > 0) {
+    localItems.forEach((rowData, idx) => addRow(rowData.item, rowData.price, idx));
+  }
+}
+
+function restoreFallback() {
+  const fallbackItems = [
+    { item: 'Noodle', price: '5' },
+    { item: 'Dumpling', price: '10' },
+    { item: 'Edamame', price: '7' },
+    { item: 'Fillet', price: '5' },
+    { item: 'Lobster', price: '10' },
+  ];
+
+  // Save fallback into localStorage
+  localStorage.setItem("autofillTable", JSON.stringify(fallbackItems));
+
+  // Hide the restore button again
+  const restoreBtn = document.getElementById('restore-autofill-item');
+  if (restoreBtn) {
+    restoreBtn.style.display = "none";
+  }
+
+  // Rebuild the table
+  loadItems();
+}
+
+function getAutofillPrices() {
+  try {
+    return JSON.parse(localStorage.getItem("autofillTable")) || [];
+  } catch (e) {
+    console.warn("autofillTable in localStorage is bad JSON, clearing.", e);
+    localStorage.removeItem("autofillTable");
+    return [];
+  }
+}
+
+function autoApplyPrice(inputEl) {
+  const autofillData = getAutofillPrices();
+  const value = inputEl.value.trim().toLowerCase();
+
+  const match = autofillData.find(row => 
+    fuzzyCompare(row.item, value) && row.price
+  );
+
+  if (match) {
+    const priceInput = inputEl.closest(".item-row").querySelector(".item-price-input");
+    if (priceInput) {
+      // always replace whatever’s in there
+      priceInput.value = match.price;
+      generateInvoice();
+    }
+  }
+}
+
+function fuzzyCompare(a, b) {
+  if (!a || !b) return false;
+  a = a.toLowerCase().trim();
+  b = b.toLowerCase().trim();
+
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+
+  for (let i = 0; i <= n; i++) dp[i][0] = i;
+  for (let j = 0; j <= m; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,      // deletion
+        dp[i][j - 1] + 1,      // insertion
+        dp[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+  return dp[n][m] <= 1;
+}
+
+function addRow(item = "", price = "", idx) {
+  const body = document.getElementById("autofillTableBody");
+  const newRow = body.insertRow();
+  newRow.insertCell().innerHTML = `<input type="text" id="item${idx}" class="info-box" style="width: 100px" value="${item}" placeholder="Item">`;
+  newRow.insertCell().innerHTML = `<input type="text" id="price${idx}" class="info-box" style="width: 100px" value="${price}" placeholder="Price">`;
+  newRow.insertCell().innerHTML = `<span id="delete${idx}" class="material-symbols-outlined delete-icon" style="cursor:pointer">delete</span>`;
+
+  newRow.querySelectorAll("input").forEach(input => {
+    input.addEventListener("input", saveTable);
+  });
+  newRow.querySelector(".delete-icon").addEventListener("click", () => {
+    newRow.remove();
+    saveTable();
+    reassignIds();
+  });
+}
+
+function addItem() {
+  const body = document.getElementById("autofillTableBody");
+  const idx = body.rows.length;
+  addRow("", "", idx);
+  saveTable();
+}
+
+function reassignIds() {
+  const body = document.getElementById("autofillTableBody");
+  for (let i = 0; i < body.rows.length; i++) {
+    const row = body.rows[i];
+    row.cells[0].querySelector("input").id = `item${i}`;
+    row.cells[1].querySelector("input").id = `price${i}`;
+    row.cells[2].querySelector("span").id = `delete${i}`;
+  }
+}
+  function showModify() {
+    document.getElementById('modifyPopup').style.display = 'flex';
+  }
+  function hideModify() {
+    document.getElementById('modifyPopup').style.display = 'none';
+  }
+function saveInvoiceSettings() {
+  const invoiceSettings = [];
+    settingsFields.forEach(fieldId => {
+    const element = document.getElementById(fieldId);
+    if (element) {
+      invoiceSettings.push(String(element.value));
+    }
+  });
+  
+  // Convert the array to a JSON string before saving
+  localStorage.setItem('invoiceSettings', JSON.stringify(invoiceSettings));
+  generateInvoice();
+}
+function loadInvoiceSettings() {
+  const savedSettings = localStorage.getItem('invoiceSettings');
+  if (savedSettings !== null) {
+    const invoiceSettings = JSON.parse(savedSettings);
+    settingsFields.forEach((fieldId, index) => {
+      const element = document.getElementById(fieldId);
+      if (element && invoiceSettings[index] !== undefined) {
+        element.value = invoiceSettings[index];
+      }
+    });
+  } else {
+    console.log('Nothing found in localStorage. Adding items...')
+    document.getElementById('invoiceFooter').value = 'Text or call us:  646-508-8436\nFollow/tag us on Instagram:    @Backyard_Hibachi_4U'
+    saveInvoiceSettings();
+  }
+}
+
+
+    async function generateInvoice() {
+      const header           = document.getElementById('invoiceHeader').value;
+      const footer           = document.getElementById('invoiceFooter').value;
+      const showChinese      = document.getElementById('showChinese').checked;
+      const forChef          = document.getElementById('forChef').checked;
+
+      const rawDate          = document.getElementById('date').value.trim();
+      const location         = document.getElementById('location').value.trim();
+      const travel           = parseFloat(document.getElementById('travel').value) || 0;
+      const deposit          = parseFloat(document.getElementById('deposit').value) || 0;
+      const discount         = parseFloat(document.getElementById('discount').value) || 0;
+      const tax              = parseFloat(document.getElementById('tax').value) || 0;
+      const notes            = document.getElementById('notes').value.trim();
+      const currentItemInput = document.getElementById("currentItemInput").value;
+      const itemInput        = document.getElementById('items-input').value;
+      const itemInputPrice   = parseFloat(document.getElementById('items-input-price').value) || 0;
+
+      const adultQty = parseFloat(document.getElementById('adultQty').value) || 0;
+      const adultBox = document.getElementById('adultBox').value;
+      const adultPrice = parseFloat(document.getElementById('adultPrice').value) || 0;
+      const kidQty = parseFloat(document.getElementById('kidQty').value) || 0;
+      const kidBox = document.getElementById('kidBox').value;
+      const kidPrice = parseFloat(document.getElementById('kidPrice').value) || 0;
+      const deluxeQty = parseFloat(document.getElementById('deluxeQty').value) || 0;
+      const deluxeBox = document.getElementById('deluxeBox').value;
+      const deluxePrice = parseFloat(document.getElementById('deluxePrice').value) || 0;
+      const setupFeeBox = document.getElementById('setupFeeBox').value;
+      const setupFeePrice = parseFloat(document.getElementById('setupFeePrice').value) || 0;
+      const upgradeBox = document.getElementById('upgradeBox').value;
+      const upgradePrice = parseFloat(document.getElementById('upgradePrice').value) || 0;
+      const sideorderBox = document.getElementById('sideorderBox').value;
+      const sideorderPrice = parseFloat(document.getElementById('sideorderPrice').value) || 0;
+      const appetizerBox = document.getElementById('appetizerBox').value;
+      const appetizerPrice = parseFloat(document.getElementById('appetizerPrice').value) || 0;
+
+      const adultTotal = adultQty * adultPrice;
+      const kidTotal   = kidQty * kidPrice;
+      const deluxeTotal= deluxeQty * deluxePrice;
+
+      const adultItems = [], kidItems = [], deluxeItems = [];
+      let foodPrice = adultTotal + kidTotal + deluxeTotal + setupFeePrice + upgradePrice + sideorderPrice + appetizerPrice + itemInputPrice;
+
+      document.querySelectorAll('.item-row').forEach(r => {
+        const qty  = parseFloat(r.querySelector('.quantity-input').value) || 0;
+        const nm   = r.querySelector('.item-input').value;
+        const price= parseFloat(r.querySelector('.item-price-input').value) || 0;
+        const cat  = r.querySelector('.item-category').value;
+        if (!qty || !nm) return;
+        let line = `${qty} ${nm}`;
+        if (price > 0) { foodPrice += qty * price; line += ` ($${(qty * price).toFixed(2)})`; }
+        if (cat === 'kids') kidItems.push(line);
+        else if (cat === 'deluxe') deluxeItems.push(line);
+        else adultItems.push(line);
+      });
+
+      let peopleSection = '';
+      if (adultQty > 0) peopleSection += `${adultQty} ${adultBox} * $${adultPrice.toFixed(2)} = $${adultTotal.toFixed(2)}`;
+      if (kidQty > 0) peopleSection += `${peopleSection.length ? '\n' : ''}${kidQty} ${kidBox} * $${kidPrice.toFixed(2)}= $${kidTotal.toFixed(2)}`;
+      if (deluxeQty > 0) peopleSection += `${peopleSection.length ? '\n' : ''}${deluxeQty} ${deluxeBox} * $${deluxePrice.toFixed(2)} $${deluxeTotal.toFixed(2)}`;
+
+      let extraSection = '';
+      if (setupFeePrice > 0) extraSection += `${setupFeeBox}: $${setupFeePrice.toFixed(2)}`;
+      if (upgradePrice > 0) extraSection += `${extraSection.length ? '\n' : ''}${upgradeBox}: $${upgradePrice.toFixed(2)}`;
+      if (sideorderPrice > 0) extraSection += `${extraSection.length ? '\n' : ''}${sideorderBox}: $${sideorderPrice.toFixed(2)}`;
+      if (appetizerPrice > 0) extraSection += `${extraSection.length ? '\n' : ''}${appetizerBox}: $${appetizerPrice.toFixed(2)}`;
+
+      let itemsSection = '';
+      let items = [];
+      if (currentItemInput === 'rows') {
+      if (adultItems.length)  items.push('Adults: ' + adultItems.join(' -- '));
+      if (kidItems.length)    items.push('Kids: '   + kidItems.join(' -- '));
+      if (deluxeItems.length) items.push('Deluxe: ' + deluxeItems.join(' -- '));
+      itemsSection += items.join('\n');
+      }
+      else if (currentItemInput === 'input') {
+      itemsSection += itemInput;
+      }
+      else {
+      console.warn('Detection Error, reverting to rows')
+      if (currentItemInput === 'rows') {
+      if (adultItems.length)  items.push('Adults: ' + adultItems.join(' -- '));
+      if (kidItems.length)    items.push('Kids: '   + kidItems.join(' -- '));
+      if (deluxeItems.length) items.push('Deluxe: ' + deluxeItems.join(' -- '));
+      itemsSection += items.join('\n');
+      }
+      }
+
+      const seperator = '________________________________________________________________\n';
+      const salesTax  = foodPrice * (tax / 100);
+      const smallTip  = foodPrice * 0.20;
+      const mediumTip  = foodPrice * 0.25;
+      const bigTip    = foodPrice * 0.30;
+      const totalCash = foodPrice + travel + salesTax - deposit - discount;
+      const smallTipTotal = totalCash + smallTip;
+      const mediumTipTotal = totalCash + mediumTip;
+      const bigTipTotal = totalCash + bigTip;
+      const smallTipVenmo = smallTipTotal * 1.02;
+      const mediumTipVenmo = mediumTipTotal * 1.02;
+      const bigTipVenmo = bigTipTotal * 1.02;
+
+      // NOTICE: Every addition should not have a newline at the beginning (unless a clear seperation is needed) and have one at the end.
+      let invoice = '';
+      if (header) { invoice += `${header}\n`}
+      /* Commented out upon request
+      // Name & ID Handler
+      if (name && invoiceId) { invoice += `${name} | ${invoiceId}\n`;}
+      else if (name) { invoice += `${name}\n`;}
+      else if (invoiceId) { invoice += `${invoiceId}\n`;}
+      // Phone Handler
+      if (phone) { invoice += `${phone}\n`;}
+      */
+      // Date Handler
+      if (rawDate) { invoice += `${rawDate}\n`;}
+      // Location Handler
+      if (location) { invoice += `${location}\n`;}
+      if (forChef) {      
+      // Chef Note
+      invoice += `\nChef Notes:
+•	每单提前 20 分钟到达（自行预留塞车时间）；连台至少提前 30 分钟。
+•	炒台时多互动、多拍照，小孩多的以小孩为主。
+•	铁板车下方务必铺防护布，防止油渍、饭粒飞溅，保持现场整洁。
+•	⚠️ 安全提醒：100% 纯酒精严禁放在铁板上或大火附近，存在爆炸危险`;}
+        else {
+      // Guest Safety Note
+      invoice += `\n🔥 Guest Safety & Chef Conduct`;
+      if (showChinese) { invoice += `（点火用VODKA,不要用纯酒精，玩火时注意旁边，安全第一，互动为主）`;}
+      invoice += `\n• Stay away of the chef during any fire or flaming show.\n\n• Chefs must not drink alcohol while working to ensure safety and professionalism\n`;
+        }
+
+      // People & Extra Sections Handler
+      if (peopleSection.length > 0) { invoice += `${seperator}People:\n${peopleSection}\n`;}
+      if (extraSection.length > 0) { invoice += `${seperator}Extras:\n${extraSection}\n`;}
+      // Items Handler
+      if (itemsSection.length > 0) { invoice += `${seperator}Items:\n${itemsSection}\n`;}
+      // Notes
+      if (notes) { invoice += `${seperator}Notes:\n${notes}\n`;}
+      // Section Seperator
+      invoice += `${seperator}`;
+      // Food Cost
+      invoice += `Food Cost                        =$${foodPrice.toFixed(2)}\n`;
+      // Travel Fee
+      if (travel > 0) {invoice += `Travel Cost                      =$${travel.toFixed(2)}\n`;}
+      // Sales Tax
+      if (tax > 0) { invoice += `Sales Tax (${tax}%)                 =$${salesTax.toFixed(2)}\n`;}
+      // Deposit
+      if (deposit > 0) {invoice += `Deposit                             = -$${deposit.toFixed(2)} Paid\n`;}
+      // Discount
+      if (discount > 0) {invoice += `Discount                           = -$${discount.toFixed(2)} Off\n`;}
+      // Total Price
+      invoice += `${seperator}Total Cash Only                =$${totalCash.toFixed(2)}
+(This total does not include chef tip.)
+
+Tips are greatly appreciated for chef's service:
+20% Tip: $${smallTip.toFixed(2)}     Total Cash: $${smallTipTotal.toFixed(2)}     Venmo Total (2% fee): $${smallTipVenmo.toFixed(2)}
+25% Tip: $${mediumTip.toFixed(2)}     Total Cash: $${mediumTipTotal.toFixed(2)}     Venmo Total (2% fee): $${mediumTipVenmo.toFixed(2)}
+30% Tip: $${bigTip.toFixed(2)}     Total Cash: $${bigTipTotal.toFixed(2)}     Venmo Total (2% fee): $${bigTipVenmo.toFixed(2)}
+${seperator}${footer}
+`;
+      // Credit Card no longer accepted so payment generation is no longer needed.
+      
+      // Remove newlines at beginning
+      function checkForBeginningNewlines() {
+      let lines = invoice.split('\n'); // Split the invoice string into an array of lines
+      if (lines[0] === "") {
+        lines.shift(); // Remove the first element from the array
+        invoice = lines.join('\n'); // Join the remaining lines back into a string
+        checkForBeginningNewlines();
+      }
+      }
+
+      checkForBeginningNewlines();
+      // Different Headers for textarea and div
+      let divInvoice = `<img src="https://backyardhibachi4u.com/images/backyardhibachi_logo.png" alt="Backyard Hibachi 4U Logo" style="width:100px;height:100px; vertical-align: bottom;"><span style="font-size: 50px; font-family:'Anton',sans-serif;">Backyard Hibachi 4U</span>\n<span style="display: inline-block; width: 100px;"></span><span style="font-size: 20px; font-family:'Anton', sans-serif;">(646) 508-8436 | backyardhibachi4u.com</span>\n\n${invoice}`;
+      document.getElementById('invoice-output').value = invoice;
+      // Just temporarily, set it to normal invoice
+      document.getElementById('invoice-output-div').innerHTML = invoice;
+    }
+    
+function clearAll() {
+  const clearIds = ['date', 'location', 'travel', 'deposit', 'notes', 'discount', 'tax', 'items-input', 
+    'adultQty', 'kidQty', 'deluxeQty',
+  ];
+  clearIds.forEach(id => { // Use 'clearIds' here
+    document.getElementById(id).value = "";
+  });
+
+  const zeroIds = ['upgradePrice', 'sideorderPrice', 'appetizerPrice', 'setupFeePrice', 'items-input-price'];
+  zeroIds.forEach(id => { // Use 'zeroIds' here
+    document.getElementById(id).value = "0";
+  });
+
+  document.getElementById("adultBox").value = "Adults";
+  document.getElementById("kidBox").value = "Kids";
+  document.getElementById("deluxeBox").value = "Deluxe";
+  document.getElementById("setupFeeBox").value = "Setup Fee";
+  document.getElementById("upgradeBox").value = "Upgrade";
+  document.getElementById("sideorderBox").value = "Side Order";
+  document.getElementById("appetizerBox").value = "Appetizer";
+  document.getElementById("adultPrice").value = "50";
+  document.getElementById("kidPrice").value = "30";
+  document.getElementById("deluxePrice").value = "65";
+
+  // Delete all dynamically added item rows
+  const itemRows = document.querySelectorAll(".item-row"); // Select all elements with class 'item-row'
+  itemRows.forEach(row => {
+    row.remove(); // Remove each item row from the DOM
+  });
+
+  // Clear the invoice output and payment link fields
+  document.getElementById("invoice-output").value = "";
+  document.getElementById("invoice-output-div").innerHTML = "";
+
+  // Re-generate the invoice to reflect the cleared state
+  generateInvoice();
+}
+
+    function updateItemType() {
+      let currentItemInput = document.getElementById("currentItemInput").value;
+      if (currentItemInput === 'rows') {
+        document.getElementById("items-section").style.display = "block";
+        document.getElementById("items-input-variation").style.display = "none";
+        document.getElementById("items-input-price").value = "0";
+        document.getElementById("items-input").value = "";
+        generateInvoice();
+      }
+      else if (currentItemInput === 'input') {
+        let foodPrice = 0;
+        const adultItems = [], kidItems = [], deluxeItems = [];
+        document.getElementById("items-section").style.display = "none";
+        document.getElementById("items-input-variation").style.display = "block";
+        document.querySelectorAll('.item-row').forEach(r => {
+        const qty  = parseFloat(r.querySelector('.quantity-input').value) || 0;
+        const nm   = r.querySelector('.item-input').value;
+        const price= parseFloat(r.querySelector('.item-price-input').value) || 0;
+        const cat  = r.querySelector('.item-category').value;
+        if (!qty || !nm) return;
+        let line = `${qty} ${nm}`;
+        if (price > 0) { foodPrice += qty * price; line += ` ($${(qty * price).toFixed(2)})`; }
+        if (cat === 'kids') kidItems.push(line);
+        else if (cat === 'deluxe') deluxeItems.push(line);
+        else adultItems.push(line);
+      });
+      let items = [];
+
+if (adultItems.length) {
+  items.push('Adults: ' + adultItems.join(' -- '));
+}
+if (kidItems.length) {
+  items.push('Kids: ' + kidItems.join(' -- '));
+}
+if (deluxeItems.length) {
+  items.push('Deluxe: ' + deluxeItems.join(' -- '));
+}
+
+const itemsSection = items.join('\n');
+        document.getElementById('items-input').value = itemsSection;
+        document.getElementById('items-input-price').value = foodPrice;
+        const itemRows = document.querySelectorAll(".item-row"); // Select all elements with class 'item-row'
+  itemRows.forEach(row => {
+    row.remove(); // Remove each item row from the DOM
+  });
+      generateInvoice();
+      }
+      else {console.warn('WARNING: No input detected')}
+    }
+
+    function updateOutputDisplay() {
+      let currentOutputDisplay = document.getElementById("currentOutputDisplay").value;
+      if (currentOutputDisplay === 'text') {
+        document.getElementById('invoice-output').style.display = "block";
+        document.getElementById('invoice-output-div').style.display = "none";
+      }
+      else if (currentOutputDisplay === 'HTML') {
+        document.getElementById('invoice-output').style.display = "none";
+        document.getElementById('invoice-output-div').style.display = "block";
+      }
+      else {
+        console.warn('No Matches, defaulting to text...')
+        document.getElementById('invoice-output').style.display = "block";
+        document.getElementById('invoice-output-div').style.display = "none";
+      }
+    }
+
+    function copyInvoice() {
+      let currentOutputDisplay = document.getElementById("currentOutputDisplay").value;
+      if (currentOutputDisplay === 'text') {
+        const ta = document.getElementById('invoice-output');
+        ta.select(); document.execCommand('copy');
+        showMessage('Invoice copied!');
+      }
+      else if (currentOutputDisplay === 'HTML') {
+        const ta = document.getElementById('invoice-output-div');
+        const tempTextArea = document.createElement('textarea');
+        tempTextArea.value = ta.innerHTML;
+        document.body.appendChild(tempTextArea);
+
+       tempTextArea.select();
+       document.execCommand('copy');
+
+       document.body.removeChild(tempTextArea);
+       showMessage('Invoice copied! Notice: Make sure to paste this in a designated HTML area.')
+      }
+      else {
+        console.warn('Type not found.')
+      }
+    }
+    function printInvoice() {
+
+      // Get the Invoice Type to use.
+      let currentOutputDisplay = document.getElementById("currentOutputDisplay").value;
+      if (currentOutputDisplay === 'text') {
+      // Get the content from the textarea.
+      var divContent = document.getElementById("invoice-output").value;
+      }
+      else if (currentOutputDisplay === 'HTML') {
+      // Get the content from the div.
+      var divContent = document.getElementById("invoice-output-div").innerHTML; 
+      }
+      // Create a new window or iframe to host the content.
+const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+printWindow.document.open();
+printWindow.document.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Invoice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 24px; white-space: pre-wrap; margin: 16px; }
+    </style>
+  </head>
+  <body>
+  ${divContent}
+    <script>
+      (function () {
+        function startPrint() {
+          // Close on dialog dismissal (Chrome/Edge/Firefox)
+          window.addEventListener('afterprint', function () {
+            window.close();
+          }, { once: true });
+
+          // Safari/iOS fallback: when the dialog closes, focus returns + page becomes visible again
+          // We arm these AFTER calling print to avoid catching initial focus.
+          setTimeout(function () {
+            // Focus return
+            window.addEventListener('focus', function () {
+              window.close();
+            }, { once: true });
+
+            // Visibility change (some Safari versions)
+            document.addEventListener('visibilitychange', function () {
+              if (!document.hidden) window.close();
+            }, { once: true });
+
+            // MatchMedia('print') fallback (older Safari behavior)
+            var mq = window.matchMedia && window.matchMedia('print');
+            if (mq) {
+              var handler = function (m) { if (!m.matches) window.close(); };
+              if (mq.addEventListener) mq.addEventListener('change', handler, { once: true });
+              else if (mq.addListener) mq.addListener(handler);
+            }
+          }, 0);
+
+          window.focus();
+          window.print();
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', startPrint, { once: true });
+        } 
+      })();
+    <\/script>
+  </body>
+</html>`);
+printWindow.document.close();
+    }
+
+    // Replaced send logic: require Google sign-in and open Gmail compose prefilled
+    function gmailInvoice() {
+      const body = encodeURIComponent(document.getElementById('invoice-output').value);
+      const subject = encodeURIComponent('Your Backyard Hibachi Invoice');
+      const to = ""
+      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+      window.open(url, '_blank');
+    }
+    function outlookInvoice() {
+      const body = encodeURIComponent(document.getElementById('invoice-output').value);
+      const subject = encodeURIComponent('Your Backyard Hibachi Invoice');
+      const to = ""
+      const url = `https://outlook.live.com/mail/0/deeplink/compose?to=${to}&subject=${subject}&body=${body}`;
+      window.open(url, '_blank');
+    }
+
+
+    window.addEventListener('DOMContentLoaded', () => {
+      adultsContainer = document.getElementById('adults-items');
+      kidsContainer   = document.getElementById('kids-items');
+      deluxeContainer = document.getElementById('deluxe-items');
+        const savedInvoice = sessionStorage.getItem('invoiceForCalculator');
+      if (savedInvoice) {
+        const invoiceData = JSON.parse(savedInvoice);
+
+       document.getElementById('date').value = invoiceData.date;
+       document.getElementById('location').value = invoiceData.location;
+       document.getElementById('travel').value = invoiceData.travel;
+       document.getElementById('deposit').value = invoiceData.deposit;
+       document.getElementById('discount').value = invoiceData.discount;
+       document.getElementById('tax').value = invoiceData.tax;
+
+       document.getElementById('adultQty').value = invoiceData.adults.quantity;
+       document.getElementById('adultPrice').value = invoiceData.adults.price;
+       document.getElementById('kidQty').value = invoiceData.kids.quantity;
+       document.getElementById('kidPrice').value = invoiceData.kids.price;
+       document.getElementById('deluxeQty').value = invoiceData.deluxe.quantity;
+       document.getElementById('deluxePrice').value = invoiceData.deluxe.price;
+
+        document.getElementById('setupFeePrice').value = invoiceData.setup.price;
+       document.getElementById('upgradePrice').value = invoiceData.upgrade.price;
+       document.getElementById('sideorderPrice').value = invoiceData.sideorder.price;
+       document.getElementById('appetizerPrice').value = invoiceData.appetizer.price;
+
+const rawDate = document.getElementById('date').value;
+let formattedDate = rawDate;
+
+if (rawDate) {
+  const d = new Date(rawDate);
+  const months = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  let hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 → 12
+
+  formattedDate = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} at ${hours}:${minutes} ${ampm}`;
+  document.getElementById('date').value = formattedDate;
+}
+      }
+      
+      loadItems();
+      loadInvoiceSettings();
+      createItemRow();
+      generateInvoice();
+    });
+  </script>
+  </div>
+</Layout>
