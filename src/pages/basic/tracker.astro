@@ -2,7 +2,7 @@
 import Layout from '../../layouts/AppLayout.astro';
 ---
 
-<Layout headerName="Invoice Tracker " headerVersion="v1.0.0">
+<Layout headerName="Invoice Tracker " headerVersion="v1.1.0">
 	<style slot="style">
       /* Modal styles for confirmation dialog */
       .confirm-modal {
@@ -34,7 +34,7 @@ import Layout from '../../layouts/AppLayout.astro';
       /* Main layout for the edit popup content using CSS Grid */
       .edit-layout {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 20px;
       }
       /* Styles for the text input grid within the edit popup */
@@ -49,11 +49,11 @@ import Layout from '../../layouts/AppLayout.astro';
       font-weight: normal; /* Labels are now normal weight */
       color: #333;
       }
-      /* Container for the line item tables, using flexbox for side-by-side layout */
+      /* Container for the line item tables, stacked vertically in the middle column */
       .line-item-tables {
       display: flex;
+      flex-direction: column;
       gap: 10px;
-      flex-wrap: wrap; /* Allows tables to wrap on smaller screens */
       }
       /* Styles for the summary table within the edit popup */
       .summary-table-container {
@@ -117,8 +117,8 @@ import Layout from '../../layouts/AppLayout.astro';
       </div>
     </div>
     <div id="editPopup" class="popup-container">
-      <div class="popup-content">
-        <form id="editForm">
+      <div class="popup-content" style="padding: 0">
+        <form style="color: rgba(0,0,0,0); background-color: rgba(0,0,0,0); border-color: rgba(0,0,0,0); width: 90%; margin: 0" id="editForm">
           <h2 style="text-align: center;">Edit Invoice</h2>
           <div class="edit-layout">
             <div class="left-column">
@@ -182,7 +182,7 @@ import Layout from '../../layouts/AppLayout.astro';
                 </table>
               </div>
             </div>
-            <div class="right-column">
+            <div class="middle-column">
               <div class="line-item-tables">
                 <table style="width: 100%;">
                   <thead>
@@ -196,20 +196,20 @@ import Layout from '../../layouts/AppLayout.astro';
                   <tbody>
                     <tr>
                       <td>Adults</td>
-                      <td><input type="number" class="quantity-input" id="adults-quantity" min="0"></td>
-                      <td><input type="number" step="0.01" class="info-box" id="adults-price" value="50.00"></td>
+                      <td><input type="number" class="quantity-input" id="adults-quantity" style="width: 100px;" min="0"></td>
+                      <td><input type="number" step="0.01" class="info-box" id="adults-price" style="width: 100px;" value="55.00"></td>
                       <td id="adults-total">0.00</td>
                     </tr>
                     <tr>
                       <td>Kids</td>
-                      <td><input type="number" class="quantity-input" id="kids-quantity" min="0"></td>
-                      <td><input type="number" step="0.01" class="info-box" id="kids-price" value="30.00"></td>
+                      <td><input type="number" class="quantity-input" id="kids-quantity" style="width: 100px;" min="0"></td>
+                      <td><input type="number" step="0.01" class="info-box" id="kids-price" style="width: 100px;" value="30.00"></td>
                       <td id="kids-total">0.00</td>
                     </tr>
                     <tr>
                       <td>Deluxe</td>
-                      <td><input type="number" class="quantity-input" id="deluxe-quantity" min="0"></td>
-                      <td><input type="number" step="0.01" class="info-box" id="deluxe-price" value="65.00"></td>
+                      <td><input type="number" class="quantity-input" id="deluxe-quantity" style="width: 100px;" min="0"></td>
+                      <td><input type="number" step="0.01" class="info-box" id="deluxe-price" style="width: 100px;" value="65.00"></td>
                       <td id="deluxe-total">0.00</td>
                     </tr>
                   </tbody>
@@ -227,16 +227,12 @@ import Layout from '../../layouts/AppLayout.astro';
                       <td><input type="number" step="0.01" class="info-box" id="upgrade-price"></td>
                     </tr>
                     <tr>
-                      <td>Side Order</td>
-                      <td><input type="number" step="0.01" class="info-box" id="side-order-price"></td>
+                      <td>Items (total)</td>
+                      <td><input type="number" step="0.01" class="info-box" id="items-input-price"></td>
                     </tr>
                     <tr>
                       <td>Setup</td>
                       <td><input type="number" step="0.01" class="info-box" id="setup-price"></td>
-                    </tr>
-                    <tr>
-                      <td>Appetizer</td>
-                      <td><input type="number" step="0.01" class="info-box" id="appetizer-price"></td>
                     </tr>
                     <tr>
                       <td>Travel</td>
@@ -244,6 +240,34 @@ import Layout from '../../layouts/AppLayout.astro';
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+            <div class="right-column">
+              <div style="width:100%; margin-top:10px;">
+                <label for="currentItemInput" style="display:block; text-align:left; margin-bottom:6px;">Items Input Type</label>
+                <select id="currentItemInput" class="item-category info-box" name="Input Type">
+                  <option value="rows" selected>Rows</option>
+                  <option value="input">Textbox (Advanced)</option>
+                </select>
+
+                <section id="items-section" style="display:block; margin-top:8px;">
+                  <button type="button" class="add-item" id="add-item">Add Item</button>
+                  <button type="button" class="add-item" id="loadFromFinder" style="width:200px">Load from Item Finder</button>
+
+                  <h3 style="margin:6px 0 4px 0; color: #000;">Adults</h3>
+                  <div id="adults-items" class="items-container"></div>
+
+                  <h3 style="margin:6px 0 4px 0; color: #000;">Kids</h3>
+                  <div id="kids-items" class="items-container"></div>
+
+                  <h3 style="margin:6px 0 4px 0; color: #000;">Deluxe</h3>
+                  <div id="deluxe-items" class="items-container"></div>
+                </section>
+
+                <div id="items-textarea-wrapper" style="margin-top:10px; display:none;">
+                  <label for="items-input" style="display:block; text-align:left; margin-bottom:6px;">Items (list)</label>
+                  <textarea id="items-input" class="info-box" rows="4" placeholder="Items (one per line)"></textarea>
+                </div>
               </div>
               <div class="edit-buttons">
                 <button type="submit" id="saveEditButton" class="add-item">Save</button>
@@ -279,6 +303,8 @@ import Layout from '../../layouts/AppLayout.astro';
       let userId;
       let allInvoices = []; // Global variable to store all fetched invoices
       let currentEditInvoiceId = null;
+      // Containers for dynamic item rows (adapted from calculator)
+      let adultsContainer, kidsContainer, deluxeContainer;
       
       const addInvoiceButton = document.getElementById('addInvoiceButton');
       const deleteAllButton = document.getElementById('deleteAllButton');
@@ -325,6 +351,8 @@ import Layout from '../../layouts/AppLayout.astro';
                   if (user) {
                       // User is signed in.
                       userId = user.uid;
+                        // Ensure other code can find the logged-in UID
+                        try { sessionStorage.setItem('loggedInUser', userId); } catch (e) { console.warn('Could not persist loggedInUser to sessionStorage', e); }
                       console.log('Authentication successful. User ID:', userId);
       
                       // Enable the button once authenticated
@@ -398,13 +426,12 @@ import Layout from '../../layouts/AppLayout.astro';
             date: new Date().toISOString().substring(0, 16),
             status: 'Unpaid',
             lineItems: {
-              adults: { quantity: 0, price: 50.00 },
+              adults: { quantity: 0, price: 55.00 },
               kids: { quantity: 0, price: 30.00 },
               deluxe: { quantity: 0, price: 65.00 },
               upgrade: { price: 0 },
-              sideOrder: { price: 0 },
+              items: { price: 0, text: '' },
               setup: { price: 0 },
-              appetizer: { price: 0 },
               travel: { price: 0 }
             },
             taxRate: 0,
@@ -504,13 +531,20 @@ import Layout from '../../layouts/AppLayout.astro';
       
           // Prices for other items
           const upgradePrice = parseFloat(document.getElementById('upgrade-price').value) || 0;
-          const sideOrderPrice = parseFloat(document.getElementById('side-order-price').value) || 0;
+          const itemsPrice = parseFloat(document.getElementById('items-input-price').value) || 0;
           const setupPrice = parseFloat(document.getElementById('setup-price').value) || 0;
-          const appetizerPrice = parseFloat(document.getElementById('appetizer-price').value) || 0;
           const travelPrice = parseFloat(document.getElementById('travel-price').value) || 0;
       
           // Calculations
-          const foodSubtotal = adultsTotal + kidsTotal + deluxeTotal + upgradePrice + sideOrderPrice + setupPrice + appetizerPrice;
+          // include any dynamically added item rows in subtotal
+          let itemsRowsTotal = 0;
+          document.querySelectorAll('.item-row').forEach(r => {
+            const qty = parseFloat(r.querySelector('.quantity-input')?.value) || 0;
+            const price = parseFloat(r.querySelector('.item-price-input')?.value) || 0;
+            if (qty && price) itemsRowsTotal += qty * price;
+          });
+
+          const foodSubtotal = adultsTotal + kidsTotal + deluxeTotal + upgradePrice + itemsPrice + setupPrice + itemsRowsTotal;
           const taxRate = parseFloat(editTaxInput.value) || 0;
           const taxAmount = foodSubtotal * (taxRate / 100);
           const grandTotal = foodSubtotal + travelPrice + taxAmount;
@@ -526,6 +560,137 @@ import Layout from '../../layouts/AppLayout.astro';
           document.getElementById('deposit-display').textContent = deposit.toFixed(2);
           document.getElementById('discount-display').textContent = discount.toFixed(2);
           document.getElementById('balance-due').textContent = balanceDue.toFixed(2);
+      }
+
+      // --- Item-row helpers (adapted from calculator.astro) ---
+      function moveRowToCategory(row, category) {
+        if (!adultsContainer || !kidsContainer || !deluxeContainer) return;
+        if (category === 'kids') kidsContainer.appendChild(row);
+        else if (category === 'deluxe') deluxeContainer.appendChild(row);
+        else adultsContainer.appendChild(row);
+        calculateTotals();
+      }
+
+      function attachRowListeners(row) {
+        const itemInput = row.querySelector('.item-input');
+        const qtyInput = row.querySelector('.quantity-input');
+        const priceInput = row.querySelector('.item-price-input');
+        const removeBtn = row.querySelector('.remove-item');
+        if (itemInput) itemInput.addEventListener('input', (e) => { autoApplyPrice(e.target); calculateTotals(); });
+        if (qtyInput) qtyInput.addEventListener('input', calculateTotals);
+        if (priceInput) priceInput.addEventListener('input', calculateTotals);
+        if (removeBtn) removeBtn.addEventListener('click', () => { row.remove(); calculateTotals(); });
+      }
+
+      function createItemRow() {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.alignItems = 'center';
+        row.innerHTML = `
+          <input type="number" class="quantity-input info-box" style="width: 50px; padding-right: 0;" placeholder="Qty" min="1" step="1" />
+          <select class="item-category info-box" style="height:37px; width:100px">
+            <option value="adults" selected>Adults</option>
+            <option value="kids">Kids</option>
+            <option value="deluxe">Deluxe</option>
+          </select>
+          <select class="item-input info-box" style="width:100px;">
+            <option value="Chicken">Chicken</option>
+            <option value="Steak">Steak</option>
+            <option value="Shrimp">Shrimp</option>
+            <option value="Scallop">Scallop</option>
+            <option value="Noodle">Noodle</option>
+            <option value="Dumpling">Dumpling</option>
+            <option value="Edamame">Edamame</option>
+            <option value="Salmon">Salmon</option>
+            <option value="Fillet">Fillet</option>
+            <option value="Lobster">Lobster</option>
+            <option value="Tofu">Tofu</option>
+            <option value="White Rice">White Rice</option>
+            <option value="Fried Rice">Fried Rice</option>
+            <option value="Vegetable">Vegetable</option>
+          </select>
+          <input type="number" class="info-box item-price-input" style="width: 50px;padding-right: 0;"placeholder="$" step="0.01" />
+          <button type="button" class="remove-item">Remove</button>
+        `;
+        const sel = row.querySelector('.item-category');
+        sel.addEventListener('change', () => moveRowToCategory(row, sel.value));
+        attachRowListeners(row);
+        moveRowToCategory(row, sel.value);
+        return row;
+      }
+
+      function getAutofillPrices() {
+        try { return JSON.parse(localStorage.getItem("autofillTable")) || []; }
+        catch (e) { localStorage.removeItem("autofillTable"); return []; }
+      }
+
+      function autoApplyPrice(inputEl) {
+        const autofillData = getAutofillPrices();
+        const value = inputEl.value.trim().toLowerCase();
+        const match = autofillData.find(row => fuzzyCompare(row.item, value) && row.price);
+        if (match) {
+          const priceInput = inputEl.closest('.item-row').querySelector('.item-price-input');
+          if (priceInput) { priceInput.value = match.price; calculateTotals(); }
+        }
+      }
+
+      function fuzzyCompare(a, b) {
+        if (!a || !b) return false;
+        a = a.toLowerCase().trim(); b = b.toLowerCase().trim();
+        if (a === b) return true; if (Math.abs(a.length - b.length) > 1) return false;
+        const n = a.length, m = b.length;
+        const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+        for (let i = 0; i <= n; i++) dp[i][0] = i;
+        for (let j = 0; j <= m; j++) dp[0][j] = j;
+        for (let i = 1; i <= n; i++) {
+          for (let j = 1; j <= m; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+          }
+        }
+        return dp[n][m] <= 1;
+      }
+
+      function updateItemType() {
+        const currentItemInput = document.getElementById('currentItemInput')?.value;
+        const itemsSection = document.getElementById('items-section');
+        const textareaWrapper = document.getElementById('items-textarea-wrapper');
+        if (currentItemInput === 'rows') {
+          if (itemsSection) itemsSection.style.display = 'block';
+          if (textareaWrapper) textareaWrapper.style.display = 'none';
+          if (document.getElementById('items-input-price')) document.getElementById('items-input-price').value = '0';
+          if (document.getElementById('items-input')) document.getElementById('items-input').value = '';
+          calculateTotals();
+        }
+        else if (currentItemInput === 'input') {
+          if (itemsSection) itemsSection.style.display = 'none';
+          if (textareaWrapper) textareaWrapper.style.display = 'block';
+          let foodPrice = 0;
+          const adultItems = [], kidItems = [], deluxeItems = [];
+          document.querySelectorAll('.item-row').forEach(r => {
+            const qty  = parseFloat(r.querySelector('.quantity-input')?.value) || 0;
+            const nm   = r.querySelector('.item-input')?.value || '';
+            const price= parseFloat(r.querySelector('.item-price-input')?.value) || 0;
+            const cat  = r.querySelector('.item-category')?.value || 'adults';
+            if (!qty || !nm) return;
+            let line = `${qty} ${nm}`;
+            if (price > 0) { foodPrice += qty * price; line += ` ($${price.toFixed(2)})`; }
+            if (cat === 'kids') kidItems.push(line);
+            else if (cat === 'deluxe') deluxeItems.push(line);
+            else adultItems.push(line);
+          });
+          const items = [];
+          if (adultItems.length) items.push('Adults: ' + adultItems.join(' -- '));
+          if (kidItems.length) items.push('Kids: ' + kidItems.join(' -- '));
+          if (deluxeItems.length) items.push('Deluxe: ' + deluxeItems.join(' -- '));
+          document.getElementById('items-input').value = items.join('\n');
+          document.getElementById('items-input-price').value = foodPrice;
+          document.querySelectorAll('.item-row').forEach(r => r.remove());
+          calculateTotals();
+        }
+        else { console.warn('WARNING: No input detected'); }
       }
       
       // Function to save edits to an invoice
@@ -545,6 +710,36 @@ import Layout from '../../layouts/AppLayout.astro';
       
         // Recalculate everything before saving
         calculateTotals();
+
+        // include any dynamic rows into items total
+        const itemsRowsTotal = Array.from(document.querySelectorAll('.item-row')).reduce((acc, r) => {
+          const qty = parseFloat(r.querySelector('.quantity-input')?.value) || 0;
+          const price = parseFloat(r.querySelector('.item-price-input')?.value) || 0;
+          return acc + (qty && price ? qty * price : 0);
+        }, 0);
+
+        // Build a textual representation of items from rows if textarea is empty
+        let itemsText = (document.getElementById('items-input') ? document.getElementById('items-input').value : '') || '';
+        if (!itemsText) {
+          const adultItems = [], kidItems = [], deluxeItems = [];
+          document.querySelectorAll('.item-row').forEach(r => {
+            const qty = parseFloat(r.querySelector('.quantity-input')?.value) || 0;
+            const nm = r.querySelector('.item-input')?.value || '';
+            const price = parseFloat(r.querySelector('.item-price-input')?.value) || 0;
+            if (!qty || !nm) return;
+            let line = `${qty} ${nm}`;
+            if (price > 0) line += ` ($${price.toFixed(2)})`;
+            const cat = r.querySelector('.item-category')?.value || 'adults';
+            if (cat === 'kids') kidItems.push(line);
+            else if (cat === 'deluxe') deluxeItems.push(line);
+            else adultItems.push(line);
+          });
+          const parts = [];
+          if (adultItems.length) parts.push('Adults: ' + adultItems.join(' -- '));
+          if (kidItems.length) parts.push('Kids: ' + kidItems.join(' -- '));
+          if (deluxeItems.length) parts.push('Deluxe: ' + deluxeItems.join(' -- '));
+          itemsText = parts.join('\n');
+        }
       
         const lineItems = {
             adults: {
@@ -560,19 +755,17 @@ import Layout from '../../layouts/AppLayout.astro';
                 price: parseFloat(document.getElementById('deluxe-price').value) || 0,
             },
             upgrade: { price: parseFloat(document.getElementById('upgrade-price').value) || 0 },
-            sideOrder: { price: parseFloat(document.getElementById('side-order-price').value) || 0 },
+            items: { price: (parseFloat(document.getElementById('items-input-price').value) || 0) + itemsRowsTotal, text: itemsText },
             setup: { price: parseFloat(document.getElementById('setup-price').value) || 0 },
-            appetizer: { price: parseFloat(document.getElementById('appetizer-price').value) || 0 },
             travel: { price: parseFloat(document.getElementById('travel-price').value) || 0 }
         };
       
         const foodSubtotal = (lineItems.adults.quantity * lineItems.adults.price) +
-                             (lineItems.kids.quantity * lineItems.kids.price) +
-                             (lineItems.deluxe.quantity * lineItems.deluxe.price) +
-                             lineItems.upgrade.price +
-                             lineItems.sideOrder.price +
-                             lineItems.setup.price +
-                             lineItems.appetizer.price;
+                 (lineItems.kids.quantity * lineItems.kids.price) +
+                 (lineItems.deluxe.quantity * lineItems.deluxe.price) +
+                 lineItems.upgrade.price +
+                 lineItems.items.price +
+                 lineItems.setup.price;
       
         const taxRate = parseFloat(editTaxInput.value) || 0;
         const taxAmount = foodSubtotal * (taxRate / 100);
@@ -623,17 +816,68 @@ import Layout from '../../layouts/AppLayout.astro';
           const lineItems = invoice.lineItems || {};
       
           document.getElementById('adults-quantity').value = lineItems.adults?.quantity || 0;
-          document.getElementById('adults-price').value = (lineItems.adults?.price || 50).toFixed(2);
+          document.getElementById('adults-price').value = (lineItems.adults?.price || 55).toFixed(2);
           document.getElementById('kids-quantity').value = lineItems.kids?.quantity || 0;
           document.getElementById('kids-price').value = (lineItems.kids?.price || 30).toFixed(2);
           document.getElementById('deluxe-quantity').value = lineItems.deluxe?.quantity || 0;
           document.getElementById('deluxe-price').value = (lineItems.deluxe?.price || 65).toFixed(2);
           document.getElementById('upgrade-price').value = (lineItems.upgrade?.price || 0).toFixed(2);
-          document.getElementById('side-order-price').value = (lineItems.sideOrder?.price || 0);
+          document.getElementById('items-input-price').value = (lineItems.items?.price || 0);
           document.getElementById('setup-price').value = (lineItems.setup?.price || 0);
-          document.getElementById('appetizer-price').value = (lineItems.appetizer?.price || 0);
           document.getElementById('travel-price').value = (lineItems.travel?.price || 0);
+          document.getElementById('items-input').value = (lineItems.items?.text || '');
       
+          // Try to seed dynamic item rows from the stored items text (if any)
+          try {
+            // clear any existing rows
+            document.querySelectorAll('.item-row').forEach(r => r.remove());
+            // clear textarea — will be regenerated fresh on save (prevents stale text from blocking row serialization)
+            document.getElementById('items-input').value = '';
+            const itemsText = (lineItems.items?.text || '').trim();
+            if (itemsText) {
+              const lines = itemsText.split('\n').map(s => s.trim()).filter(Boolean);
+              lines.forEach(line => {
+                // Group header like "Adults: item -- item"
+                const headerMatch = line.match(/^(Adults|Kids|Deluxe):\s*(.*)$/i);
+                if (headerMatch) {
+                  const cat = headerMatch[1].toLowerCase();
+                  const itemsPart = headerMatch[2];
+                  const itemsArr = itemsPart.split(' -- ').map(s => s.trim()).filter(Boolean);
+                  itemsArr.forEach(it => {
+                    const itemMatch = it.match(/^(\d+)\s+(.+?)(?:\s*\(\$([0-9.]+)\))?$/);
+                    if (itemMatch) {
+                      const qty = parseInt(itemMatch[1], 10);
+                      const name = itemMatch[2];
+                      const price = itemMatch[3] ? parseFloat(itemMatch[3]) : '';
+                      const r = createItemRow();
+                      r.querySelector('.item-category').value = (cat === 'kids' ? 'kids' : (cat === 'deluxe' ? 'deluxe' : 'adults'));
+                      r.querySelector('.item-input').value = name;
+                      r.querySelector('.quantity-input').value = qty;
+                      if (price !== '') r.querySelector('.item-price-input').value = price;
+                      moveRowToCategory(r, r.querySelector('.item-category').value);
+                    }
+                  });
+                } else {
+                  // Single-line like "3 Noodle ($5)" or "3 Noodle"
+                  const m = line.match(/^(\d+)\s+(.+?)(?:\s*\(\$([0-9.]+)\))?$/);
+                  if (m) {
+                    const qty = parseInt(m[1], 10);
+                    const name = m[2];
+                    const price = m[3] ? parseFloat(m[3]) : '';
+                    const r = createItemRow();
+                    r.querySelector('.item-category').value = 'adults';
+                    r.querySelector('.item-input').value = name;
+                    r.querySelector('.quantity-input').value = qty;
+                    if (price !== '') r.querySelector('.item-price-input').value = price;
+                    moveRowToCategory(r, 'adults');
+                  }
+                }
+              });
+            }
+          } catch (err) {
+            console.warn('Could not parse items text into rows:', err);
+          }
+
           // Run the calculation to populate the summary table
           calculateTotals();
       }
@@ -816,6 +1060,47 @@ import Layout from '../../layouts/AppLayout.astro';
         document.querySelectorAll('#editForm input[type="number"], #editForm select').forEach(input => {
           input.addEventListener('input', calculateTotals);
         });
+
+        // Initialize dynamic item containers and bind item controls
+        adultsContainer = document.getElementById('adults-items');
+        kidsContainer = document.getElementById('kids-items');
+        deluxeContainer = document.getElementById('deluxe-items');
+
+        const addItemBtn = document.getElementById('add-item');
+        if (addItemBtn) addItemBtn.addEventListener('click', () => { createItemRow(); calculateTotals(); });
+
+        const loadFinderBtn = document.getElementById('loadFromFinder');
+        if (loadFinderBtn) loadFinderBtn.addEventListener('click', () => {
+          const stored = localStorage.getItem('itemCounts');
+          if (!stored) return console.warn('No item data found from Item Finder.');
+          const itemCounts = JSON.parse(stored);
+          adultsContainer.innerHTML = '';
+          kidsContainer.innerHTML = '';
+          deluxeContainer.innerHTML = '';
+          Object.entries(itemCounts).forEach(([item, counts]) => {
+            if (counts.adult > 0) {
+              const r = createItemRow(); r.querySelector('.item-category').value = 'adults';
+              r.querySelector('.item-input').value = item; r.querySelector('.quantity-input').value = counts.adult;
+              moveRowToCategory(r, 'adults'); autoApplyPrice(r.querySelector('.item-input'));
+            }
+            if (counts.kid > 0) {
+              const r = createItemRow(); r.querySelector('.item-category').value = 'kids';
+              r.querySelector('.item-input').value = item; r.querySelector('.quantity-input').value = counts.kid;
+              moveRowToCategory(r, 'kids'); autoApplyPrice(r.querySelector('.item-input'));
+            }
+            if (counts.deluxe > 0) {
+              const r = createItemRow(); r.querySelector('.item-category').value = 'deluxe';
+              r.querySelector('.item-input').value = item; r.querySelector('.quantity-input').value = counts.deluxe;
+              moveRowToCategory(r, 'deluxe'); autoApplyPrice(r.querySelector('.item-input'));
+            }
+          });
+          calculateTotals();
+        });
+
+        // Ensure initial items input mode is applied
+        if (document.getElementById('currentItemInput')) updateItemType();
+        const currentItemSel = document.getElementById('currentItemInput');
+        if (currentItemSel) currentItemSel.addEventListener('change', updateItemType);
       
         // Add event listeners for sorting, search and date inputs
         sortSelect.addEventListener('change', sortInvoices);
@@ -853,6 +1138,7 @@ import Layout from '../../layouts/AppLayout.astro';
               const dataToSave = {
                name: invoice.name || '',
                id: invoice.invoiceId || '',
+               docId: invoice.id || '',
                date: invoice.date || '',
                location: invoice.location || '',
                phone: invoice.phoneNumber || '',
@@ -861,13 +1147,12 @@ import Layout from '../../layouts/AppLayout.astro';
                deposit: invoice.deposit || '',
                discount: invoice.discount || '',
                tax: invoice.taxRate || '',
-               adults: invoice.lineItems?.adults || { quantity: '', price: 50 },
+               adults: invoice.lineItems?.adults || { quantity: '', price: 55 },
                kids: invoice.lineItems?.kids || { quantity: '', price: 30 },
                deluxe: invoice.lineItems?.deluxe || { quantity: '', price: 65 },
                setup: invoice.lineItems?.setup || { price: '' },
                upgrade: invoice.lineItems?.upgrade || { price: '' },
-               sideorder: invoice.lineItems?.sideOrder || { price: '' },
-               appetizer: invoice.lineItems?.appetizer || { price: '' }
+               items: invoice.lineItems?.items || { price: '', text: '' }
               };
              sessionStorage.setItem('invoiceForCalculator', JSON.stringify(dataToSave));
              window.location.href = 'calculator';

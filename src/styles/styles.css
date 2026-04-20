@@ -394,16 +394,17 @@ nav {
   margin-bottom: 20px;
   padding: 0;
 }
-.info-box, .quantity-input, .item-price-input {
-  background-color:var(--white);
-  border:2px solid var(--secondary-color);
-  border-radius:5px;
+.info-box, .quantity-input, .item-price-input, select {
+  background-color: var(--white);
+  border: 2px solid var(--secondary-color);
+  border-radius: 5px;
   vertical-align: middle;
-  height:25px;
-  padding:3px;
-  margin:5px;
+  height: 36px;
+  padding: 6px 8px;
+  margin: 5px;
   font-size: 16px;
-  font-family:"Raleway", sans-serif; 
+  font-family: "Raleway", sans-serif;
+  box-sizing: border-box;
 }
 textarea.info-box {
   height: 40px; /* or match input height */
@@ -415,13 +416,17 @@ textarea.info-box {
 .quantity-input, .item-price-input { width: 40px; }
 
 .add-item, .remove-item, .remove-all-item, .copy-button {
-  border-radius:5px;
-  height:30px;
-  width:80px;
-  padding:3px;
-  margin:5px;
+  border-radius: 5px;
+  min-width: 80px;
+  padding: 6px 12px;
+  margin: 5px;
   font-size: 16px;
-  font-family:"Raleway", sans-serif; 
+  font-family: "Raleway", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 .copy-button { background-color: var(--copy-bg); border: 2px solid var(--copy-border); }
 .remove-item, .remove-all-item { background-color: var(--remove-bg); border: 2px solid var(--remove-border); }

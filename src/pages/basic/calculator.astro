@@ -2,7 +2,7 @@
 import Layout from '../../layouts/AppLayout.astro';
 ---
 
-<Layout headerName="Invoice Creator " headerVersion="v1.8.3">
+<Layout headerName="Invoice Creator " headerVersion="v1.9.0">
   <div slot="body">
       <!-- Autofill Popup -->
     <div id="autofillPopup" class="popup-container">
@@ -25,6 +25,20 @@ import Layout from '../../layouts/AppLayout.astro';
         <button class="remove-item" onclick="hideAutofill()">Close</button>
       </div>
     </div>
+
+    <!-- Invoice Picker Popup -->
+      <div id="invoicePickerPopup" class="popup-container" style="display:none;">
+        <div class="popup-content">
+          <h2>Select Invoice to Update</h2>
+          <div id="invoicePickerList" style="max-height:320px; overflow:auto; text-align:left;">
+            <!-- invoices will be populated here -->
+          </div>
+          <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end;">
+            <button class="add-item" id="refreshInvoiceList">Refresh</button>
+            <button class="remove-item" onclick="hideInvoicePicker()">Close</button>
+          </div>
+        </div>
+      </div>
 
   <!-- Modify Invoice Popup -->
     <div id="modifyPopup" class="popup-container">
@@ -83,14 +97,6 @@ import Layout from '../../layouts/AppLayout.astro';
         <input id="upgradeBox" class="info-box" value="Upgrade">
         <input id="upgradePrice" class="quantity-input info-box" value="0">
       </div>
-      <div>
-        <input id="sideorderBox" class="info-box" value="Side Order">
-        <input id="sideorderPrice" class="quantity-input info-box" value="0">
-      </div>
-      <div>
-        <input id="appetizerBox" class="info-box" value="Appetizer">
-        <input id="appetizerPrice" class="quantity-input info-box" value="0">
-      </div>
       </div>
     </section>
 
@@ -131,17 +137,14 @@ import Layout from '../../layouts/AppLayout.astro';
         <option value="HTML">HTML</option>
       </select>
       <label style="font-size:14px;">
-      <input type="checkbox" id="showChinese" onchange="generateInvoice()" value="true" checked>Show Chinese
-      </label>
-      <label style="font-size:14px;">
       <input type="checkbox" id="forChef" onchange="generateInvoice()" value="true" checked>For Chef
       </label>
       <br>
       <button type="button" class="add-item" onclick="showModify()">Modify</button>
       <button type="button" class="copy-button" onclick="copyInvoice()">Copy</button>
-      <button type="button" class="copy-button" onclick="gmailInvoice()">Gmail</button>
-      <button type="button" class="copy-button" onclick="outlookInvoice()">Outlook</button>
       <button type="button" class="copy-button" onclick="printInvoice()">Print</button>
+      <button type="button" class="add-item" onclick="newInvoice()" style="width:200px">Save As New Invoice</button>
+      <button type="button" class="add-item" onclick="handleUpdateClick()" style="width:150px">Update Invoice</button>
     </div>
 
     <textarea
@@ -167,7 +170,49 @@ import Layout from '../../layouts/AppLayout.astro';
     >There seems to be an error...</div>
   </aside>
 
-  <script type="text/javascript">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, collection, addDoc, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDIF22zN6b-YjCilsumv7VrwO3NiUeeCM4",
+      authDomain: "cafitem-8de92.firebaseapp.com",
+      projectId: "cafitem-8de92",
+      storageBucket: "cafitem-8de92.firebasestorage.app",
+      messagingSenderId: "100147713764",
+      appId: "1:100147713764:web:b41169600b7c121d04bef1",
+      measurementId: "G-9D859PV60C"
+    };
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    let db;
+    let auth;
+
+    async function initFirebase() {
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            // signed in
+            try { sessionStorage.setItem('loggedInUser', user.uid); } catch (e) { console.warn('Could not persist loggedInUser to sessionStorage', e); }
+          } else {
+            try {
+              if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
+              else await signInAnonymously(auth);
+            } catch (error) {
+              console.error('Authentication error:', error);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization failed:', error);
+      }
+    }
     let adultsContainer, kidsContainer, deluxeContainer;
     let lastInvoice = { totalAmount: null };
     let settingsFields = ['invoiceHeader', 'invoiceFooter']
@@ -199,14 +244,29 @@ import Layout from '../../layouts/AppLayout.astro';
       const row = document.createElement('div');
       row.className = 'item-row';
       row.innerHTML = `
-        <input type="number" class="quantity-input info-box" placeholder="Qty" min="1" step="1" required />
-        <select class="item-category info-box" style="height:37px;" required>
+        <input type="number" class="quantity-input info-box" style="width: 50px;padding-right: 0;" placeholder="Qty" min="1" step="1" required />
+        <select class="item-category info-box" style="height:37px;width: 100px" required>
           <option value="adults" selected>Adults</option>
           <option value="kids">Kids</option>
           <option value="deluxe">Deluxe</option>
         </select>
-        <input type="text" class="item-input info-box" placeholder="Item" required />
-        <input type="number" class="info-box item-price-input" placeholder="$"/>
+        <select type="text" class="item-input info-box" style="width: 100px" placeholder="Item" required>
+          <option value="Chicken">Chicken</option>
+          <option value="Steak">Steak</option>
+          <option value="Shrimp">Shrimp</option>
+          <option value="Scallop">Scallop</option>
+          <option value="Noodle">Noodle</option>
+          <option value="Dumpling">Dumpling</option>
+          <option value="Edamame">Edamame</option>
+          <option value="Salmon">Salmon</option>
+          <option value="Fillet">Fillet</option>
+          <option value="Lobster">Lobster</option>
+          <option value="Tofu">Tofu</option>
+          <option value="White Rice">White Rice</option>
+          <option value="Fried Rice">Fried Rice</option>
+          <option value="Vegetable">Vegetable</option>
+        </select>
+        <input type="number" class="info-box item-price-input" style="width: 50px;padding-right: 0;" placeholder="$"/>
         <button type="button" class="remove-item">Remove</button>
       `;
       const sel = row.querySelector('.item-category');
@@ -250,7 +310,7 @@ import Layout from '../../layouts/AppLayout.astro';
 
     [
       'date','location','travel','deposit','notes', 'discount', 'tax', 'items-input', 'items-input-price',
-      'adultQty', 'adultBox', 'adultPrice','kidQty', 'kidBox', 'kidPrice','deluxeQty', 'deluxeBox', 'deluxePrice', 'upgradePrice', 'upgradeBox', 'sideorderPrice', 'sideorderBox', 'appetizerPrice', 'appetizerBox','setupFeeBox', 'setupFeePrice'
+      'adultQty', 'adultBox', 'adultPrice','kidQty', 'kidBox', 'kidPrice','deluxeQty', 'deluxeBox', 'deluxePrice', 'upgradePrice', 'upgradeBox', 'setupFeePrice'
 
     ].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', generateInvoice); });
     [
@@ -261,6 +321,133 @@ import Layout from '../../layouts/AppLayout.astro';
   }
   function hideAutofill() {
     document.getElementById('autofillPopup').style.display = 'none';
+  }
+  
+  // Invoice picker functions
+  // mode: 'select' (default) => clicking an invoice loads it into editor
+  // mode: 'update' => clicking an invoice updates that doc with current editor values
+  function showInvoicePicker(mode = 'select') {
+    window.invoicePickerMode = mode || 'select';
+    const popup = document.getElementById('invoicePickerPopup');
+    if (!popup) return console.warn('Invoice picker popup not found');
+    popup.style.display = 'flex';
+    populateInvoicePicker();
+  }
+
+  function hideInvoicePicker() {
+    const popup = document.getElementById('invoicePickerPopup');
+    if (!popup) return;
+    popup.style.display = 'none';
+  }
+
+  async function populateInvoicePicker() {
+    const list = document.getElementById('invoicePickerList');
+    if (!list) return;
+    list.innerHTML = 'Loading...';
+    try {
+      const loggedInUid = sessionStorage.getItem('loggedInUser');
+      if (!loggedInUid) { list.innerHTML = 'Please log in to load invoices.'; return; }
+      const usersCollectionRef = collection(db, 'users');
+      const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) { list.innerHTML = 'No user record found.'; return; }
+      const userDocRef = querySnapshot.docs[0].ref;
+      const invoicesCollectionRef = collection(userDocRef, 'invoices');
+      const invoicesSnapshot = await getDocs(invoicesCollectionRef);
+      if (!invoicesSnapshot || invoicesSnapshot.empty) { list.innerHTML = 'No invoices found.'; return; }
+      list.innerHTML = '';
+      invoicesSnapshot.forEach(d => {
+        const data = d.data();
+        const id = d.id;
+        const row = document.createElement('div');
+        row.style.padding = '8px';
+        row.style.borderBottom = '1px solid #eee';
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.gap = '12px';
+        const invoiceId = data.invoiceId || '';
+        const name = data.name || '';
+        const date = data.date ? new Date(data.date).toLocaleString() : '';
+        const total = data.total !== undefined ? parseFloat(data.total).toFixed(2) : '0.00';
+        const left = document.createElement('div');
+        left.style.flex = '1';
+        left.innerHTML = `<div><strong>${invoiceId}</strong> ${name} <br><small>${date} • $${total}</small></div>`;
+
+        // Edit button (loads invoice into editor)
+        const editBtn = document.createElement('button');
+        editBtn.className = 'add-item';
+        editBtn.style.marginLeft = '6px';
+        editBtn.textContent = 'Save';
+        editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); loadInvoiceToCalculator(id, data); hideInvoicePicker(); });
+
+        // When in update mode, clicking the row will perform the update using current editor values
+        row.addEventListener('click', async () => {
+          if (window.invoicePickerMode === 'update') {
+            // set target id and call update
+            window.currentInvoiceDocId = id;
+            await updateInvoice();
+            hideInvoicePicker();
+          } else {
+            loadInvoiceToCalculator(id, data);
+            hideInvoicePicker();
+          }
+        });
+
+        row.appendChild(left);
+        row.appendChild(editBtn);
+        list.appendChild(row);
+      });
+    } catch (err) {
+      console.error('Error loading invoices for picker', err);
+      list.innerHTML = 'Error loading invoices. See console.';
+    }
+  }
+
+  function loadInvoiceToCalculator(docId, invoice) {
+    try {
+      window.currentInvoiceDocId = docId || null;
+      if (!invoice) return showMessage('No invoice data');
+      document.getElementById('date').value = invoice.date || '';
+      document.getElementById('location').value = invoice.location || '';
+      document.getElementById('travel').value = (invoice.lineItems?.travel?.price !== undefined ? invoice.lineItems.travel.price : (invoice.travel || ''));
+      document.getElementById('deposit').value = invoice.deposit || '';
+      document.getElementById('discount').value = invoice.discount || '';
+      document.getElementById('tax').value = invoice.taxRate || '';
+
+      const adults = invoice.lineItems?.adults || {};
+      const kids = invoice.lineItems?.kids || {};
+      const deluxe = invoice.lineItems?.deluxe || {};
+      document.getElementById('adultQty').value = adults.quantity || '';
+      document.getElementById('adultPrice').value = adults.price || 55;
+      document.getElementById('kidQty').value = kids.quantity || '';
+      document.getElementById('kidPrice').value = kids.price || 30;
+      document.getElementById('deluxeQty').value = deluxe.quantity || '';
+      document.getElementById('deluxePrice').value = deluxe.price || 65;
+
+      document.getElementById('setupFeePrice').value = (invoice.lineItems?.setup?.price !== undefined ? invoice.lineItems.setup.price : (invoice.setup?.price || ''));
+      document.getElementById('upgradePrice').value = (invoice.lineItems?.upgrade?.price !== undefined ? invoice.lineItems.upgrade.price : (invoice.upgrade?.price || ''));
+      if (document.getElementById('items-input')) document.getElementById('items-input').value = invoice.lineItems?.items?.text || invoice.items?.text || '';
+      if (document.getElementById('items-input-price')) document.getElementById('items-input-price').value = invoice.lineItems?.items?.price || invoice.items?.price || 0;
+
+      // Seed dynamic item rows from the stored items text (best-effort)
+      try {
+        const itemsText = invoice.lineItems?.items?.text || invoice.items?.text || '';
+        if (itemsText) seedItemRowsFromItemsText(itemsText);
+      } catch (err) {
+        console.warn('Failed to seed item rows:', err);
+      }
+
+      generateInvoice();
+      showMessage('Invoice loaded into editor. Click Update to save changes.');
+    } catch (err) {
+      console.error('Error loading invoice into calculator', err);
+    }
+  }
+
+  function handleUpdateClick() {
+    // Always open the picker in update mode (two-step: click Update, then click invoice)
+    showInvoicePicker('update');
   }
   function saveTable() {
   const body = document.getElementById("autofillTableBody");
@@ -351,6 +538,51 @@ function autoApplyPrice(inputEl) {
       generateInvoice();
     }
   }
+}
+
+// Seed item rows from a saved items text (best-effort parser)
+function seedItemRowsFromItemsText(itemsText) {
+  // remove existing rows first
+  document.querySelectorAll('.item-row').forEach(r => r.remove());
+  if (!itemsText) return;
+  const lines = itemsText.split('\n').map(s => s.trim()).filter(Boolean);
+  lines.forEach(line => {
+    // Group header like "Adults: item -- item"
+    const headerMatch = line.match(/^(Adults|Kids|Deluxe):\s*(.*)$/i);
+    if (headerMatch) {
+      const cat = headerMatch[1].toLowerCase();
+      const itemsPart = headerMatch[2];
+      const itemsArr = itemsPart.split(' -- ').map(s => s.trim()).filter(Boolean);
+      itemsArr.forEach(it => {
+        const itemMatch = it.match(/^(\d+)\s+(.+?)(?:\s*\(\$([0-9.]+)\))?$/);
+        if (itemMatch) {
+          const qty = parseInt(itemMatch[1], 10);
+          const name = itemMatch[2];
+          const price = itemMatch[3] ? parseFloat(itemMatch[3]) : '';
+          const r = createItemRow();
+          r.querySelector('.item-category').value = (cat === 'kids' ? 'kids' : (cat === 'deluxe' ? 'deluxe' : 'adults'));
+          r.querySelector('.item-input').value = name;
+          r.querySelector('.quantity-input').value = qty;
+          if (price !== '') r.querySelector('.item-price-input').value = price;
+          moveRowToCategory(r, r.querySelector('.item-category').value);
+        }
+      });
+    } else {
+      // Single-line like "3 Noodle ($5)" or "3 Noodle"
+      const m = line.match(/^(\d+)\s+(.+?)(?:\s*\(\$([0-9.]+)\))?$/);
+      if (m) {
+        const qty = parseInt(m[1], 10);
+        const name = m[2];
+        const price = m[3] ? parseFloat(m[3]) : '';
+        const r = createItemRow();
+        r.querySelector('.item-category').value = 'adults';
+        r.querySelector('.item-input').value = name;
+        r.querySelector('.quantity-input').value = qty;
+        if (price !== '') r.querySelector('.item-price-input').value = price;
+        moveRowToCategory(r, 'adults');
+      }
+    }
+  });
 }
 
 function fuzzyCompare(a, b) {
@@ -453,7 +685,6 @@ function loadInvoiceSettings() {
     async function generateInvoice() {
       const header           = document.getElementById('invoiceHeader').value;
       const footer           = document.getElementById('invoiceFooter').value;
-      const showChinese      = document.getElementById('showChinese').checked;
       const forChef          = document.getElementById('forChef').checked;
 
       const rawDate          = document.getElementById('date').value.trim();
@@ -480,17 +711,15 @@ function loadInvoiceSettings() {
       const setupFeePrice = parseFloat(document.getElementById('setupFeePrice').value) || 0;
       const upgradeBox = document.getElementById('upgradeBox').value;
       const upgradePrice = parseFloat(document.getElementById('upgradePrice').value) || 0;
-      const sideorderBox = document.getElementById('sideorderBox').value;
-      const sideorderPrice = parseFloat(document.getElementById('sideorderPrice').value) || 0;
-      const appetizerBox = document.getElementById('appetizerBox').value;
-      const appetizerPrice = parseFloat(document.getElementById('appetizerPrice').value) || 0;
 
       const adultTotal = adultQty * adultPrice;
       const kidTotal   = kidQty * kidPrice;
       const deluxeTotal= deluxeQty * deluxePrice;
+      let sideorderPrice = 0;
+      let appetizerPrice = 0;
 
       const adultItems = [], kidItems = [], deluxeItems = [];
-      let foodPrice = adultTotal + kidTotal + deluxeTotal + setupFeePrice + upgradePrice + sideorderPrice + appetizerPrice + itemInputPrice;
+      let foodPrice = adultTotal + kidTotal + deluxeTotal + setupFeePrice + upgradePrice + itemInputPrice;
 
       document.querySelectorAll('.item-row').forEach(r => {
         const qty  = parseFloat(r.querySelector('.quantity-input').value) || 0;
@@ -499,7 +728,16 @@ function loadInvoiceSettings() {
         const cat  = r.querySelector('.item-category').value;
         if (!qty || !nm) return;
         let line = `${qty} ${nm}`;
-        if (price > 0) { foodPrice += qty * price; line += ` ($${(qty * price).toFixed(2)})`; }
+        if (price > 0) { 
+          console.log(nm);
+          if (nm === 'Edamame' || nm === 'Dumpling' || nm === 'Fillet' || nm === 'Lobster') {
+            appetizerPrice += qty * price;
+          }
+           else if (nm === 'Noodle' || nm === 'White Rice' || nm === 'Fried Rice') {
+            sideorderPrice += qty * price;
+          }
+          foodPrice += qty * price; 
+        }
         if (cat === 'kids') kidItems.push(line);
         else if (cat === 'deluxe') deluxeItems.push(line);
         else adultItems.push(line);
@@ -508,13 +746,13 @@ function loadInvoiceSettings() {
       let peopleSection = '';
       if (adultQty > 0) peopleSection += `${adultQty} ${adultBox} * $${adultPrice.toFixed(2)} = $${adultTotal.toFixed(2)}`;
       if (kidQty > 0) peopleSection += `${peopleSection.length ? '\n' : ''}${kidQty} ${kidBox} * $${kidPrice.toFixed(2)}= $${kidTotal.toFixed(2)}`;
-      if (deluxeQty > 0) peopleSection += `${peopleSection.length ? '\n' : ''}${deluxeQty} ${deluxeBox} * $${deluxePrice.toFixed(2)} $${deluxeTotal.toFixed(2)}`;
+      if (deluxeQty > 0) peopleSection += `${peopleSection.length ? '\n' : ''}${deluxeQty} ${deluxeBox} * $${deluxePrice.toFixed(2)} = $${deluxeTotal.toFixed(2)}`;
 
       let extraSection = '';
       if (setupFeePrice > 0) extraSection += `${setupFeeBox}: $${setupFeePrice.toFixed(2)}`;
       if (upgradePrice > 0) extraSection += `${extraSection.length ? '\n' : ''}${upgradeBox}: $${upgradePrice.toFixed(2)}`;
-      if (sideorderPrice > 0) extraSection += `${extraSection.length ? '\n' : ''}${sideorderBox}: $${sideorderPrice.toFixed(2)}`;
-      if (appetizerPrice > 0) extraSection += `${extraSection.length ? '\n' : ''}${appetizerBox}: $${appetizerPrice.toFixed(2)}`;
+      if (sideorderPrice > 0) extraSection += `${extraSection.length ? '\n' : ''}Side Order: $${sideorderPrice.toFixed(2)}`;
+      if (appetizerPrice > 0) extraSection += `${extraSection.length ? '\n' : ''}Appetizer: $${appetizerPrice.toFixed(2)}`;
 
       let itemsSection = '';
       let items = [];
@@ -575,7 +813,6 @@ function loadInvoiceSettings() {
         else {
       // Guest Safety Note
       invoice += `\n🔥 Guest Safety & Chef Conduct`;
-      if (showChinese) { invoice += `（点火用VODKA,不要用纯酒精，玩火时注意旁边，安全第一，互动为主）`;}
       invoice += `\n• Stay away of the chef during any fire or flaming show.\n\n• Chefs must not drink alcohol while working to ensure safety and professionalism\n`;
         }
 
@@ -636,7 +873,7 @@ function clearAll() {
     document.getElementById(id).value = "";
   });
 
-  const zeroIds = ['upgradePrice', 'sideorderPrice', 'appetizerPrice', 'setupFeePrice', 'items-input-price'];
+  const zeroIds = ['upgradePrice', 'setupFeePrice', 'items-input-price'];
   zeroIds.forEach(id => { // Use 'zeroIds' here
     document.getElementById(id).value = "0";
   });
@@ -646,8 +883,6 @@ function clearAll() {
   document.getElementById("deluxeBox").value = "Deluxe";
   document.getElementById("setupFeeBox").value = "Setup Fee";
   document.getElementById("upgradeBox").value = "Upgrade";
-  document.getElementById("sideorderBox").value = "Side Order";
-  document.getElementById("appetizerBox").value = "Appetizer";
   document.getElementById("adultPrice").value = "55";
   document.getElementById("kidPrice").value = "30";
   document.getElementById("deluxePrice").value = "65";
@@ -829,31 +1064,187 @@ printWindow.document.write(`<!doctype html>
 </html>`);
 printWindow.document.close();
     }
+          async function newInvoice() {
+        const loggedInUid = sessionStorage.getItem('loggedInUser');
+        if (!loggedInUid) {
+          showMessage('Please log in to save invoices.');
+          return;
+        }
 
-    // Replaced send logic: require Google sign-in and open Gmail compose prefilled
-    function gmailInvoice() {
-      const body = encodeURIComponent(document.getElementById('invoice-output').value);
-      const subject = encodeURIComponent('Your Backyard Hibachi Invoice');
-      const to = ""
-      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-      window.open(url, '_blank');
-    }
-    function outlookInvoice() {
-      const body = encodeURIComponent(document.getElementById('invoice-output').value);
-      const subject = encodeURIComponent('Your Backyard Hibachi Invoice');
-      const to = ""
-      const url = `https://outlook.live.com/mail/0/deeplink/compose?to=${to}&subject=${subject}&body=${body}`;
-      window.open(url, '_blank');
-    }
+        try {
+          const usersCollectionRef = collection(db, 'users');
+          const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+          const querySnapshot = await getDocs(q);
+          if (querySnapshot.empty) {
+            showMessage('User record not found.');
+            return;
+          }
+          const userDocRef = querySnapshot.docs[0].ref;
+          const invoicesCollectionRef = collection(userDocRef, 'invoices');
 
+          // Generate a unique invoiceId
+          const now = new Date();
+          const datePart = `${now.getMonth() + 1}-${now.getDate()}-${now.getFullYear() % 100}`;
+          const invoicesSnapshot = await getDocs(invoicesCollectionRef);
+          const invoicesOnSameDay = invoicesSnapshot.docs.map(d => d.data()).filter(inv => (inv.invoiceId || '').startsWith(`INV-${datePart}`));
+          const newCounter = invoicesOnSameDay.length + 1;
+          const newInvoiceId = `INV-${datePart}-${newCounter}`;
+
+          // Collect fields from UI
+          const rawDate = document.getElementById('date').value.trim() || new Date().toISOString().substring(0, 16);
+          const location = document.getElementById('location').value.trim();
+          const travel = parseFloat(document.getElementById('travel').value) || 0;
+          const deposit = parseFloat(document.getElementById('deposit').value) || 0;
+          const discount = parseFloat(document.getElementById('discount').value) || 0;
+          const tax = parseFloat(document.getElementById('tax').value) || 0;
+
+          const adultQty = parseFloat(document.getElementById('adultQty').value) || 0;
+          const adultPrice = parseFloat(document.getElementById('adultPrice').value) || 0;
+          const kidQty = parseFloat(document.getElementById('kidQty').value) || 0;
+          const kidPrice = parseFloat(document.getElementById('kidPrice').value) || 0;
+          const deluxeQty = parseFloat(document.getElementById('deluxeQty').value) || 0;
+          const deluxePrice = parseFloat(document.getElementById('deluxePrice').value) || 0;
+          const setupFeePrice = parseFloat(document.getElementById('setupFeePrice').value) || 0;
+          const upgradePrice = parseFloat(document.getElementById('upgradePrice').value) || 0;
+          const itemsText = (document.getElementById('items-input') ? document.getElementById('items-input').value : '') || '';
+          const itemsPrice = parseFloat(document.getElementById('items-input-price').value) || 0;
+
+          // include any dynamically added item rows
+          let itemsRowsTotal = 0;
+          document.querySelectorAll('.item-row').forEach(r => {
+            const qty = parseFloat(r.querySelector('.quantity-input').value) || 0;
+            const price = parseFloat(r.querySelector('.item-price-input').value) || 0;
+            if (qty && price) itemsRowsTotal += qty * price;
+          });
+
+          const foodSubtotal = (adultQty * adultPrice) + (kidQty * kidPrice) + (deluxeQty * deluxePrice) + setupFeePrice + upgradePrice + itemsPrice + itemsRowsTotal;
+          const taxAmount = foodSubtotal * (tax / 100);
+          const grandTotal = foodSubtotal + travel + taxAmount;
+          const balance = grandTotal - deposit - discount;
+
+          const lineItems = {
+            adults: { quantity: adultQty, price: adultPrice },
+            kids: { quantity: kidQty, price: kidPrice },
+            deluxe: { quantity: deluxeQty, price: deluxePrice },
+            upgrade: { price: upgradePrice },
+            setup: { price: setupFeePrice },
+            items: { price: itemsPrice + itemsRowsTotal, text: itemsText },
+            travel: { price: travel }
+          };
+
+          await addDoc(invoicesCollectionRef, {
+            invoiceId: newInvoiceId,
+            name: '',
+            phoneNumber: '',
+            email: '',
+            location: location,
+            date: rawDate,
+            status: 'Unpaid',
+            lineItems,
+            taxRate: tax,
+            deposit,
+            discount,
+            total: grandTotal,
+            balance
+          });
+
+          showMessage('Invoice saved as new invoice');
+        } catch (error) {
+          console.error('Error adding document:', error);
+          showMessage('Error saving invoice. See console.');
+        }
+      };
+
+      async function updateInvoice() {
+        const docId = window.currentInvoiceDocId || null;
+        if (!docId) {
+          showMessage('No invoice selected to update.');
+          return;
+        }
+
+        const loggedInUid = sessionStorage.getItem('loggedInUser');
+        if (!loggedInUid) { showMessage('Please log in.'); return; }
+
+        try {
+          const usersCollectionRef = collection(db, 'users');
+          const q = query(usersCollectionRef, where('uid', '==', loggedInUid));
+          const querySnapshot = await getDocs(q);
+          if (querySnapshot.empty) { showMessage('User record not found.'); return; }
+          const userDocRef = querySnapshot.docs[0].ref;
+          const invoiceDocRef = doc(userDocRef, 'invoices', docId);
+
+          // Recompute totals similar to newInvoice
+          const rawDate = document.getElementById('date').value.trim() || new Date().toISOString().substring(0,16);
+          const location = document.getElementById('location').value.trim();
+          const travel = parseFloat(document.getElementById('travel').value) || 0;
+          const deposit = parseFloat(document.getElementById('deposit').value) || 0;
+          const discount = parseFloat(document.getElementById('discount').value) || 0;
+          const tax = parseFloat(document.getElementById('tax').value) || 0;
+
+          const adultQty = parseFloat(document.getElementById('adultQty').value) || 0;
+          const adultPrice = parseFloat(document.getElementById('adultPrice').value) || 0;
+          const kidQty = parseFloat(document.getElementById('kidQty').value) || 0;
+          const kidPrice = parseFloat(document.getElementById('kidPrice').value) || 0;
+          const deluxeQty = parseFloat(document.getElementById('deluxeQty').value) || 0;
+          const deluxePrice = parseFloat(document.getElementById('deluxePrice').value) || 0;
+          const setupFeePrice = parseFloat(document.getElementById('setupFeePrice').value) || 0;
+          const upgradePrice = parseFloat(document.getElementById('upgradePrice').value) || 0;
+          const itemsText = (document.getElementById('items-input') ? document.getElementById('items-input').value : '') || '';
+          const itemsPrice = parseFloat(document.getElementById('items-input-price').value) || 0;
+
+          let itemsRowsTotal = 0;
+          document.querySelectorAll('.item-row').forEach(r => {
+            const qty = parseFloat(r.querySelector('.quantity-input').value) || 0;
+            const price = parseFloat(r.querySelector('.item-price-input').value) || 0;
+            if (qty && price) itemsRowsTotal += qty * price;
+          });
+
+          const foodSubtotal = (adultQty * adultPrice) + (kidQty * kidPrice) + (deluxeQty * deluxePrice) + setupFeePrice + upgradePrice + itemsPrice + itemsRowsTotal;
+          const taxAmount = foodSubtotal * (tax / 100);
+          const grandTotal = foodSubtotal + travel + taxAmount;
+          const balance = grandTotal - deposit - discount;
+
+          const lineItems = {
+            adults: { quantity: adultQty, price: adultPrice },
+            kids: { quantity: kidQty, price: kidPrice },
+            deluxe: { quantity: deluxeQty, price: deluxePrice },
+            upgrade: { price: upgradePrice },
+            setup: { price: setupFeePrice },
+            items: { price: itemsPrice + itemsRowsTotal, text: itemsText },
+            travel: { price: travel }
+          };
+
+          const updatedData = {
+            date: rawDate,
+            location,
+            lineItems,
+            taxRate: tax,
+            deposit,
+            discount,
+            total: grandTotal,
+            balance
+          };
+
+          await updateDoc(invoiceDocRef, updatedData);
+          showMessage('Invoice updated successfully');
+        } catch (err) {
+          console.error('Error updating invoice:', err);
+          showMessage('Error updating invoice. See console.');
+        }
+      };
 
     window.addEventListener('DOMContentLoaded', () => {
       adultsContainer = document.getElementById('adults-items');
       kidsContainer   = document.getElementById('kids-items');
       deluxeContainer = document.getElementById('deluxe-items');
-        const savedInvoice = sessionStorage.getItem('invoiceForCalculator');
+        // Initialize Firebase (so new/update invoice endpoints work)
+      initFirebase();
+
+      const savedInvoice = sessionStorage.getItem('invoiceForCalculator');
       if (savedInvoice) {
         const invoiceData = JSON.parse(savedInvoice);
+        // Save current document id (if provided) so updateInvoice knows which doc to update
+        window.currentInvoiceDocId = invoiceData.docId || null;
 
        document.getElementById('date').value = invoiceData.date;
        document.getElementById('location').value = invoiceData.location;
@@ -871,8 +1262,16 @@ printWindow.document.close();
 
         document.getElementById('setupFeePrice').value = invoiceData.setup.price;
        document.getElementById('upgradePrice').value = invoiceData.upgrade.price;
-       document.getElementById('sideorderPrice').value = invoiceData.sideorder.price;
-       document.getElementById('appetizerPrice').value = invoiceData.appetizer.price;
+       if (document.getElementById('items-input')) document.getElementById('items-input').value = (invoiceData.items && invoiceData.items.text) || '';
+       if (document.getElementById('items-input-price')) document.getElementById('items-input-price').value = (invoiceData.items && invoiceData.items.price) || 0;
+
+        // Seed dynamic item rows from session data if present
+        try {
+          const itemsText = (invoiceData.items && invoiceData.items.text) || '';
+          if (itemsText) seedItemRowsFromItemsText(itemsText);
+        } catch (err) {
+          console.warn('Error seeding item rows from session invoice:', err);
+        }
 
 const rawDate = document.getElementById('date').value;
 let formattedDate = rawDate;
@@ -895,10 +1294,29 @@ if (rawDate) {
 }
       }
       
+      // Expose functions used by inline `onclick` attributes (module scope is not global)
+      window.newInvoice = newInvoice;
+      window.updateInvoice = updateInvoice;
+      window.showModify = showModify;
+      window.hideModify = hideModify;
+      window.showAutofill = showAutofill;
+      window.hideAutofill = hideAutofill;
+      window.showInvoicePicker = showInvoicePicker;
+      window.hideInvoicePicker = hideInvoicePicker;
+      window.addItem = addItem;
+      window.handleUpdateClick = handleUpdateClick;
+      window.restoreFallback = restoreFallback;
+      window.copyInvoice = copyInvoice;
+      window.printInvoice = printInvoice;
+      window.clearAll = clearAll;
+
       loadItems();
       loadInvoiceSettings();
-      createItemRow();
+      // Only create a blank item row if none were seeded from session/load
+      if (document.querySelectorAll('.item-row').length === 0) createItemRow();
       generateInvoice();
+      const refreshBtn = document.getElementById('refreshInvoiceList');
+      if (refreshBtn) refreshBtn.addEventListener('click', populateInvoicePicker);
     });
   </script>
   </div>
