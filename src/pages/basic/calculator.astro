@@ -112,13 +112,13 @@ import Layout from '../../layouts/AppLayout.astro';
       <button type="button" class="add-item" id="loadFromFinder" style="width:200px">Load from Item Finder</button>
       <button type="button" class="copy-button" onclick="showAutofill()">Autofill</button>
 
-      <h3>Adults</h3>
+      <h3 id="adults-heading" style="text-align: center; display: none;">Adults</h3>
       <div id="adults-items" class="items-container"></div>
 
-      <h3>Kids</h3>
+      <h3 id="kids-heading" style="text-align: center; display: none;">Kids</h3>
       <div id="kids-items" class="items-container"></div>
 
-      <h3>Deluxe</h3>
+      <h3 id="deluxe-heading" style="text-align: center; display: none;">Deluxe</h3>
       <div id="deluxe-items" class="items-container"></div>
     </section>
     <section id="items-input-variation" style="display: none;">
@@ -229,14 +229,35 @@ import Layout from '../../layouts/AppLayout.astro';
       if (category === 'kids') deluxe = false, kidsContainer.appendChild(row);
       else if (category === 'deluxe') deluxeContainer.appendChild(row);
       else adultsContainer.appendChild(row);
+      updateHeadingVisibility();
+      generateInvoice();
+    }
+
+    function updateHeadingVisibility() {
+      document.getElementById('adults-heading').style.display = adultsContainer.children.length > 0 ? 'block' : 'none';
+      document.getElementById('kids-heading').style.display = kidsContainer.children.length > 0 ? 'block' : 'none';
+      document.getElementById('deluxe-heading').style.display = deluxeContainer.children.length > 0 ? 'block' : 'none';
+    }
+
+    function recalcItemsTotal() {
+      // Recalculate items-input-price from current rows only (fresh, no accumulation)
+      if (document.getElementById('currentItemInput').value === 'rows') {
+        let itemsTotal = 0;
+        document.querySelectorAll('.item-row').forEach(r => {
+          const qty = parseFloat(r.querySelector('.quantity-input')?.value) || 0;
+          const price = parseFloat(r.querySelector('.item-price-input')?.value) || 0;
+          if (qty && price) itemsTotal += qty * price;
+        });
+        document.getElementById('items-input-price').value = itemsTotal.toFixed(2);
+      }
       generateInvoice();
     }
 
     function attachRowListeners(row) {
-      row.querySelector('.item-input')     .addEventListener('input', generateInvoice);
-      row.querySelector('.quantity-input') .addEventListener('input', generateInvoice);
-      row.querySelector('.item-price-input').addEventListener('input', generateInvoice);
-      row.querySelector('.remove-item').addEventListener('click', () => { row.remove(); generateInvoice(); });
+      row.querySelector('.item-input')     .addEventListener('input', recalcItemsTotal);
+      row.querySelector('.quantity-input') .addEventListener('input', recalcItemsTotal);
+      row.querySelector('.item-price-input').addEventListener('input', recalcItemsTotal);
+      row.querySelector('.remove-item').addEventListener('click', () => { row.remove(); updateHeadingVisibility(); recalcItemsTotal(); });
       row.querySelector('.item-input').addEventListener('input', (e) => autoApplyPrice(e.target));
     }
 
@@ -276,7 +297,7 @@ import Layout from '../../layouts/AppLayout.astro';
       return row;
     }
 
-    document.getElementById('add-item').addEventListener('click', () => { createItemRow(); generateInvoice(); });
+    document.getElementById('add-item').addEventListener('click', () => { createItemRow(); updateHeadingVisibility(); recalcItemsTotal(); });
 
     document.getElementById('loadFromFinder').addEventListener('click', () => {
       const stored = localStorage.getItem('itemCounts');
@@ -312,7 +333,7 @@ import Layout from '../../layouts/AppLayout.astro';
       'date','location','travel','deposit','notes', 'discount', 'tax', 'items-input', 'items-input-price',
       'adultQty', 'adultBox', 'adultPrice','kidQty', 'kidBox', 'kidPrice','deluxeQty', 'deluxeBox', 'deluxePrice', 'upgradePrice', 'upgradeBox', 'setupFeePrice'
 
-    ].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', generateInvoice); });
+    ].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', () => { generateInvoice(); recalcItemsTotal(); }); });
     [
       'invoiceHeader','invoiceFooter'
     ].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', saveInvoiceSettings); });
@@ -1107,7 +1128,6 @@ printWindow.document.close();
           const setupFeePrice = parseFloat(document.getElementById('setupFeePrice').value) || 0;
           const upgradePrice = parseFloat(document.getElementById('upgradePrice').value) || 0;
           const itemsText = (document.getElementById('items-input') ? document.getElementById('items-input').value : '') || '';
-          const itemsPrice = parseFloat(document.getElementById('items-input-price').value) || 0;
 
           // include any dynamically added item rows
           let itemsRowsTotal = 0;
@@ -1117,7 +1137,11 @@ printWindow.document.close();
             if (qty && price) itemsRowsTotal += qty * price;
           });
 
-          const foodSubtotal = (adultQty * adultPrice) + (kidQty * kidPrice) + (deluxeQty * deluxePrice) + setupFeePrice + upgradePrice + itemsPrice + itemsRowsTotal;
+          // Use appropriate price based on current mode (rows or input textbox)
+          const currentMode = document.getElementById("currentItemInput").value;
+          const itemsPrice = currentMode === 'rows' ? itemsRowsTotal : (parseFloat(document.getElementById('items-input-price').value) || 0);
+
+          const foodSubtotal = (adultQty * adultPrice) + (kidQty * kidPrice) + (deluxeQty * deluxePrice) + setupFeePrice + upgradePrice + itemsPrice;
           const taxAmount = foodSubtotal * (tax / 100);
           const grandTotal = foodSubtotal + travel + taxAmount;
           const balance = grandTotal - deposit - discount;
@@ -1128,7 +1152,7 @@ printWindow.document.close();
             deluxe: { quantity: deluxeQty, price: deluxePrice },
             upgrade: { price: upgradePrice },
             setup: { price: setupFeePrice },
-            items: { price: itemsPrice + itemsRowsTotal, text: itemsText },
+            items: { price: itemsPrice, text: itemsText },
             travel: { price: travel }
           };
 
@@ -1190,7 +1214,6 @@ printWindow.document.close();
           const setupFeePrice = parseFloat(document.getElementById('setupFeePrice').value) || 0;
           const upgradePrice = parseFloat(document.getElementById('upgradePrice').value) || 0;
           const itemsText = (document.getElementById('items-input') ? document.getElementById('items-input').value : '') || '';
-          const itemsPrice = parseFloat(document.getElementById('items-input-price').value) || 0;
 
           let itemsRowsTotal = 0;
           document.querySelectorAll('.item-row').forEach(r => {
@@ -1199,7 +1222,11 @@ printWindow.document.close();
             if (qty && price) itemsRowsTotal += qty * price;
           });
 
-          const foodSubtotal = (adultQty * adultPrice) + (kidQty * kidPrice) + (deluxeQty * deluxePrice) + setupFeePrice + upgradePrice + itemsPrice + itemsRowsTotal;
+          // Use appropriate price based on current mode (rows or input textbox)
+          const currentMode = document.getElementById("currentItemInput").value;
+          const itemsPrice = currentMode === 'rows' ? itemsRowsTotal : (parseFloat(document.getElementById('items-input-price').value) || 0);
+
+          const foodSubtotal = (adultQty * adultPrice) + (kidQty * kidPrice) + (deluxeQty * deluxePrice) + setupFeePrice + upgradePrice + itemsPrice;
           const taxAmount = foodSubtotal * (tax / 100);
           const grandTotal = foodSubtotal + travel + taxAmount;
           const balance = grandTotal - deposit - discount;
@@ -1210,7 +1237,7 @@ printWindow.document.close();
             deluxe: { quantity: deluxeQty, price: deluxePrice },
             upgrade: { price: upgradePrice },
             setup: { price: setupFeePrice },
-            items: { price: itemsPrice + itemsRowsTotal, text: itemsText },
+            items: { price: itemsPrice, text: itemsText },
             travel: { price: travel }
           };
 
@@ -1269,6 +1296,7 @@ printWindow.document.close();
         try {
           const itemsText = (invoiceData.items && invoiceData.items.text) || '';
           if (itemsText) seedItemRowsFromItemsText(itemsText);
+          updateHeadingVisibility();
         } catch (err) {
           console.warn('Error seeding item rows from session invoice:', err);
         }

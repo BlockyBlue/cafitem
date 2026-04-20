@@ -70,6 +70,13 @@ import Layout from '../../layouts/AppLayout.astro';
       .info-box, .quantity-input {
       margin: 0px;
       }
+      .items-category-heading {
+      text-align: center;
+      display: none;
+      }
+      .items-category-heading.visible {
+      display: block;
+      }
 	</style>
 	<div slot="body">
     <main style="text-align: center;">
@@ -254,13 +261,13 @@ import Layout from '../../layouts/AppLayout.astro';
                   <button type="button" class="add-item" id="add-item">Add Item</button>
                   <button type="button" class="add-item" id="loadFromFinder" style="width:200px">Load from Item Finder</button>
 
-                  <h3 style="margin:6px 0 4px 0; color: #000;">Adults</h3>
+                  <h3 class="items-category-heading" id="adults-heading" style="margin:6px 0 4px 0; color: #000;">Adults</h3>
                   <div id="adults-items" class="items-container"></div>
 
-                  <h3 style="margin:6px 0 4px 0; color: #000;">Kids</h3>
+                  <h3 class="items-category-heading" id="kids-heading" style="margin:6px 0 4px 0; color: #000;">Kids</h3>
                   <div id="kids-items" class="items-container"></div>
 
-                  <h3 style="margin:6px 0 4px 0; color: #000;">Deluxe</h3>
+                  <h3 class="items-category-heading" id="deluxe-heading" style="margin:6px 0 4px 0; color: #000;">Deluxe</h3>
                   <div id="deluxe-items" class="items-container"></div>
                 </section>
 
@@ -568,6 +575,27 @@ import Layout from '../../layouts/AppLayout.astro';
         if (category === 'kids') kidsContainer.appendChild(row);
         else if (category === 'deluxe') deluxeContainer.appendChild(row);
         else adultsContainer.appendChild(row);
+        updateHeadingVisibility();
+        calculateTotals();
+      }
+
+      function updateHeadingVisibility() {
+        document.getElementById('adults-heading').classList.toggle('visible', adultsContainer.children.length > 0);
+        document.getElementById('kids-heading').classList.toggle('visible', kidsContainer.children.length > 0);
+        document.getElementById('deluxe-heading').classList.toggle('visible', deluxeContainer.children.length > 0);
+      }
+
+      function recalcItemsTotal() {
+        // Recalculate items-input-price from current rows only (fresh, no accumulation)
+        if (document.getElementById('currentItemInput').value === 'rows') {
+          let itemsTotal = 0;
+          document.querySelectorAll('.item-row').forEach(r => {
+            const qty = parseFloat(r.querySelector('.quantity-input')?.value) || 0;
+            const price = parseFloat(r.querySelector('.item-price-input')?.value) || 0;
+            if (qty && price) itemsTotal += qty * price;
+          });
+          document.getElementById('items-input-price').value = itemsTotal.toFixed(2);
+        }
         calculateTotals();
       }
 
@@ -576,10 +604,10 @@ import Layout from '../../layouts/AppLayout.astro';
         const qtyInput = row.querySelector('.quantity-input');
         const priceInput = row.querySelector('.item-price-input');
         const removeBtn = row.querySelector('.remove-item');
-        if (itemInput) itemInput.addEventListener('input', (e) => { autoApplyPrice(e.target); calculateTotals(); });
-        if (qtyInput) qtyInput.addEventListener('input', calculateTotals);
-        if (priceInput) priceInput.addEventListener('input', calculateTotals);
-        if (removeBtn) removeBtn.addEventListener('click', () => { row.remove(); calculateTotals(); });
+        if (itemInput) itemInput.addEventListener('input', (e) => { autoApplyPrice(e.target); recalcItemsTotal(); });
+        if (qtyInput) qtyInput.addEventListener('input', recalcItemsTotal);
+        if (priceInput) priceInput.addEventListener('input', recalcItemsTotal);
+        if (removeBtn) removeBtn.addEventListener('click', () => { row.remove(); updateHeadingVisibility(); recalcItemsTotal(); });
       }
 
       function createItemRow() {
@@ -1058,7 +1086,7 @@ import Layout from '../../layouts/AppLayout.astro';
       
         // Event listeners for the new input fields to trigger calculations
         document.querySelectorAll('#editForm input[type="number"], #editForm select').forEach(input => {
-          input.addEventListener('input', calculateTotals);
+          input.addEventListener('input', () => { calculateTotals(); recalcItemsTotal(); });
         });
 
         // Initialize dynamic item containers and bind item controls
@@ -1067,7 +1095,7 @@ import Layout from '../../layouts/AppLayout.astro';
         deluxeContainer = document.getElementById('deluxe-items');
 
         const addItemBtn = document.getElementById('add-item');
-        if (addItemBtn) addItemBtn.addEventListener('click', () => { createItemRow(); calculateTotals(); });
+        if (addItemBtn) addItemBtn.addEventListener('click', () => { createItemRow(); updateHeadingVisibility(); recalcItemsTotal(); });
 
         const loadFinderBtn = document.getElementById('loadFromFinder');
         if (loadFinderBtn) loadFinderBtn.addEventListener('click', () => {
